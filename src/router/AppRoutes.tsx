@@ -1,0 +1,22 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+import BaseLayout from '../components/layout/BaseLayout';
+import CartPage from '../pages/CartPage';
+import HomePage from '../pages/HomePage';
+import PromotionsPage from '../pages/PromotionsPage';
+import RegisterPage from '../pages/RegisterPage';
+import StoresPage from '../pages/StoresPage';
+
+const AppRoutes = () => (
+  <Routes>
+    <Route element={<BaseLayout />}>
+      <Route path="/" element={<Navigate to="/promociones" replace />} />
+      <Route path="/menu" element={<HomePage />} />
+      <Route path="/promociones" element={<PromotionsPage />} />
+      <Route path="/locales" element={<StoresPage />} />
+      <Route path="/mi-carrito" element={<CartPage />} />
+      <Route path="/registro" element={<RegisterPage />} />
+    </Route>
+  </Routes>
+);
+
+export default AppRoutes;
