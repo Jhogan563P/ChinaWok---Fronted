@@ -4,6 +4,7 @@ import CartPage from '../pages/CartPage';
 import HomePage from '../pages/HomePage';
 import PromotionsPage from '../pages/PromotionsPage';
 import RegisterPage from '../pages/RegisterPage';
+import LoginPage from '../pages/LoginPage';
 import StoresPage from '../pages/StoresPage';
 
 const AppRoutes = () => (
@@ -15,6 +16,7 @@ const AppRoutes = () => (
       <Route path="/locales" element={<StoresPage />} />
       <Route path="/mi-carrito" element={<CartPage />} />
       <Route path="/registro" element={<RegisterPage />} />
+      <Route path="/login" element={<LoginPage />} />
     </Route>
   </Routes>
 );

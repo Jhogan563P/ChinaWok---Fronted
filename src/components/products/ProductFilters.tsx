@@ -1,9 +1,9 @@
-import type { Product } from '../../data/products';
+import type { Product } from '../../types';
 
 interface ProductFiltersProps {
-  categories: Product['category'][];
-  active: Product['category'];
-  onSelect: (category: Product['category']) => void;
+  categories: string[];
+  active: string;
+  onSelect: (category: string) => void;
 }
 
 const ProductFilters = ({ categories, active, onSelect }: ProductFiltersProps) => {

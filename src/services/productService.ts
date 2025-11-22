@@ -1,18 +1,31 @@
-import { products } from '../data/products';
-import type { Product } from '../data/products';
+import { ordersClient } from './apiClient';
+import type { Product, ApiResponse } from '../types';
 
-export const listProducts = async (category?: Product['category']) => {
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-  await delay(300);
-
-  if (!category || category === 'Para compartir') {
-    return products;
+/**
+ * Lista todos los productos de un local
+ */
+export const listProducts = async (localId: string): Promise<Product[]> => {
+  try {
+    const response = await ordersClient.get<ApiResponse<Product[]>>('/productos', {
+      params: { local_id: localId }
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    throw error;
   }
-
-  return products.filter((product) => product.category === category);
 };
 
-export const listCategories = () => {
-  const categories = Array.from(new Set(products.map((product) => product.category)));
-  return ['Para compartir', ...categories.filter((category) => category !== 'Para compartir')];
+/**
+ * Lista todas las categorías de productos
+ */
+export const listCategories = async (): Promise<string[]> => {
+  try {
+    // Simulando la obtención de categorías. Idealmente, esto vendría de un endpoint.
+    const categories = ["Arroces", "Tallarines", "Pollo al wok", "Carne de res", "Cerdo", "Mariscos", "Entradas", "Guarniciones", "Sopas", "Combos", "Bebidas", "Postres"];
+    return Promise.resolve(categories);
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    throw error;
+  }
 };
