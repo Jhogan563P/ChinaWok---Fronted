@@ -9,8 +9,8 @@ const LoginPage = () => {
   const { login } = useAuth();
 
   const [form, setForm] = useState<LoginCredentials>({
-    email: '',
-    password: ''
+    correo: '',
+    contrasena: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -19,14 +19,14 @@ const LoginPage = () => {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!form.email.trim()) {
-      newErrors.email = 'El correo es requerido';
-    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
-      newErrors.email = 'El correo no es válido';
+    if (!form.correo.trim()) {
+      newErrors.correo = 'El correo es requerido';
+    } else if (!/\S+@\S+\.\S+/.test(form.correo)) {
+      newErrors.correo = 'El correo no es válido';
     }
 
-    if (!form.password) {
-      newErrors.password = 'La contraseña es requerida';
+    if (!form.contrasena) {
+      newErrors.contrasena = 'La contraseña es requerida';
     }
 
     setErrors(newErrors);
@@ -73,37 +73,37 @@ const LoginPage = () => {
           )}
 
           <div>
-            <label className="text-sm font-semibold text-dark-text" htmlFor="email">
+            <label className="text-sm font-semibold text-dark-text" htmlFor="correo">
               Correo electrónico
             </label>
             <input
-              id="email"
+              id="correo"
               type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              value={form.correo}
+              onChange={(e) => setForm({ ...form, correo: e.target.value })}
               className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${
-                errors.email ? 'border-red-500' : 'border-gray-200 focus:border-primary'
+                errors.correo ? 'border-red-500' : 'border-gray-200 focus:border-primary'
               }`}
               placeholder="nombre@correo.com"
             />
-            {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+            {errors.correo && <p className="mt-1 text-xs text-red-500">{errors.correo}</p>}
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-dark-text" htmlFor="password">
+            <label className="text-sm font-semibold text-dark-text" htmlFor="contrasena">
               Contraseña
             </label>
             <input
-              id="password"
+              id="contrasena"
               type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              value={form.contrasena}
+              onChange={(e) => setForm({ ...form, contrasena: e.target.value })}
               className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${
-                errors.password ? 'border-red-500' : 'border-gray-200 focus:border-primary'
+                errors.contrasena ? 'border-red-500' : 'border-gray-200 focus:border-primary'
               }`}
               placeholder="********"
             />
-            {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+            {errors.contrasena && <p className="mt-1 text-xs text-red-500">{errors.contrasena}</p>}
           </div>
 
           <button

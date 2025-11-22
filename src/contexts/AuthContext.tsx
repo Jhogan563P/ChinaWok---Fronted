@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setIsLoading(true);
       const response: AuthResponse = await userService.login(credentials);
-      setUser(response.user);
+      setUser(response.usuario);
     } catch (error) {
       console.error('Error en login:', error);
       throw error;
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setIsLoading(true);
       const response: AuthResponse = await userService.register(data);
-      setUser(response.user);
+      setUser(response.usuario);
     } catch (error) {
       console.error('Error en registro:', error);
       throw error;

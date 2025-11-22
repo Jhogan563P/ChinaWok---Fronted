@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
-import type { Product } from '../data/products';
+import { useEffect, useState, useMemo } from 'react';
+import type { Product } from '../types';
 import { listProducts } from '../services/productService';
 
 interface UseProductsOptions {
-  category?: Product['category'];
+  localId?: string;
+  categoria?: string;
 }
 
-export const useProducts = ({ category }: UseProductsOptions = {}) => {
+export const useProducts = ({ localId = "b72f395a-38c0-4b02-bf08-2c1b2da5834b", categoria }: UseProductsOptions = {}) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -14,22 +15,31 @@ export const useProducts = ({ category }: UseProductsOptions = {}) => {
     let isMounted = true;
     setLoading(true);
 
-    listProducts(category)
-      .then((items) => {
-        if (isMounted) {
-          setProducts(items);
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setLoading(false);
-        }
-      });
+    if (localId) {
+      listProducts(localId)
+        .then((items) => {
+          if (isMounted) {
+            setProducts(items);
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            setLoading(false);
+          }
+        });
+    }
 
     return () => {
       isMounted = false;
     };
-  }, [category]);
+  }, [localId]);
 
-  return { products, loading };
+  const filteredProducts = useMemo(() => {
+    if (categoria && categoria !== 'Para compartir') {
+      return products.filter(product => product.categoria === categoria);
+    }
+    return products;
+  }, [products, categoria]);
+
+  return { products: filteredProducts, loading };
 };

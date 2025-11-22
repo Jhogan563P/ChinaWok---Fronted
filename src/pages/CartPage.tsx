@@ -89,7 +89,7 @@ const CartPage = () => {
                 <div className="flex-1">
                   <h2 className="text-lg font-semibold text-dark-text">{item.name}</h2>
                   <p className="text-sm text-gray-500">
-                    S/ {item.price.toFixed(2)} c/u
+                    S/ {Number(item.price).toFixed(2)} c/u
                   </p>
                   <div className="mt-2 flex items-center gap-2">
                     <button
@@ -109,7 +109,7 @@ const CartPage = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-semibold text-primary">
-                    S/ {(item.price * item.quantity).toFixed(2)}
+                    S/ {(Number(item.price) * item.quantity).toFixed(2)}
                   </p>
                   <button
                     onClick={() => removeItem(item.id)}

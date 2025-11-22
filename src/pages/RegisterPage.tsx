@@ -9,11 +9,9 @@ const RegisterPage = () => {
   const { register } = useAuth();
 
   const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    password: '',
+    nombre: '',
+    correo: '',
+    contrasena: '',
     confirmPassword: ''
   });
 
@@ -24,33 +22,23 @@ const RegisterPage = () => {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!form.firstName.trim()) {
-      newErrors.firstName = 'El nombre es requerido';
+    if (!form.nombre.trim()) {
+      newErrors.nombre = 'El nombre es requerido';
     }
 
-    if (!form.lastName.trim()) {
-      newErrors.lastName = 'El apellido es requerido';
+    if (!form.correo.trim()) {
+      newErrors.correo = 'El correo es requerido';
+    } else if (!/\S+@\S+\.\S+/.test(form.correo)) {
+      newErrors.correo = 'El correo no es válido';
     }
 
-    if (!form.email.trim()) {
-      newErrors.email = 'El correo es requerido';
-    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
-      newErrors.email = 'El correo no es válido';
+    if (!form.contrasena) {
+      newErrors.contrasena = 'La contraseña es requerida';
+    } else if (form.contrasena.length < 6) {
+      newErrors.contrasena = 'La contraseña debe tener al menos 6 caracteres';
     }
 
-    if (!form.phone.trim()) {
-      newErrors.phone = 'El teléfono es requerido';
-    } else if (!/^\d{9}$/.test(form.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'El teléfono debe tener 9 dígitos';
-    }
-
-    if (!form.password) {
-      newErrors.password = 'La contraseña es requerida';
-    } else if (form.password.length < 6) {
-      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
-    }
-
-    if (form.password !== form.confirmPassword) {
+    if (form.contrasena !== form.confirmPassword) {
       newErrors.confirmPassword = 'Las contraseñas no coinciden';
     }
 
@@ -73,11 +61,9 @@ const RegisterPage = () => {
 
     try {
       const registerData: RegisterData = {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        phone: form.phone,
-        password: form.password
+        nombre: form.nombre,
+        correo: form.correo,
+        contrasena: form.contrasena,
       };
 
       await register(registerData);
@@ -109,91 +95,56 @@ const RegisterPage = () => {
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="text-sm font-semibold text-dark-text" htmlFor="firstName">
-                Nombre
-              </label>
-              <input
-                id="firstName"
-                type="text"
-                value={form.firstName}
-                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${
-                  errors.firstName ? 'border-red-500' : 'border-gray-200 focus:border-primary'
-                }`}
-                placeholder="Tu nombre"
-              />
-              {errors.firstName && <p className="mt-1 text-xs text-red-500">{errors.firstName}</p>}
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-dark-text" htmlFor="lastName">
-                Apellido
-              </label>
-              <input
-                id="lastName"
-                type="text"
-                value={form.lastName}
-                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${
-                  errors.lastName ? 'border-red-500' : 'border-gray-200 focus:border-primary'
-                }`}
-                placeholder="Tu apellido"
-              />
-              {errors.lastName && <p className="mt-1 text-xs text-red-500">{errors.lastName}</p>}
-            </div>
+          <div>
+            <label className="text-sm font-semibold text-dark-text" htmlFor="nombre">
+              Nombre
+            </label>
+            <input
+              id="nombre"
+              type="text"
+              value={form.nombre}
+              onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+              className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${
+                errors.nombre ? 'border-red-500' : 'border-gray-200 focus:border-primary'
+              }`}
+              placeholder="Tu nombre"
+            />
+            {errors.nombre && <p className="mt-1 text-xs text-red-500">{errors.nombre}</p>}
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-dark-text" htmlFor="email">
+            <label className="text-sm font-semibold text-dark-text" htmlFor="correo">
               Correo electrónico
             </label>
             <input
-              id="email"
+              id="correo"
               type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              value={form.correo}
+              onChange={(e) => setForm({ ...form, correo: e.target.value })}
               className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${
-                errors.email ? 'border-red-500' : 'border-gray-200 focus:border-primary'
+                errors.correo ? 'border-red-500' : 'border-gray-200 focus:border-primary'
               }`}
               placeholder="nombre@correo.com"
             />
-            {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
-          </div>
-
-          <div>
-            <label className="text-sm font-semibold text-dark-text" htmlFor="phone">
-              Teléfono de contacto
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${
-                errors.phone ? 'border-red-500' : 'border-gray-200 focus:border-primary'
-              }`}
-              placeholder="999 999 999"
-            />
-            {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone}</p>}
+            {errors.correo && <p className="mt-1 text-xs text-red-500">{errors.correo}</p>}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-sm font-semibold text-dark-text" htmlFor="password">
+              <label className="text-sm font-semibold text-dark-text" htmlFor="contrasena">
                 Crea tu contraseña
               </label>
               <input
-                id="password"
+                id="contrasena"
                 type="password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                value={form.contrasena}
+                onChange={(e) => setForm({ ...form, contrasena: e.target.value })}
                 className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${
-                  errors.password ? 'border-red-500' : 'border-gray-200 focus:border-primary'
+                  errors.contrasena ? 'border-red-500' : 'border-gray-200 focus:border-primary'
                 }`}
                 placeholder="********"
               />
-              {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+              {errors.contrasena && <p className="mt-1 text-xs text-red-500">{errors.contrasena}</p>}
             </div>
             <div>
               <label className="text-sm font-semibold text-dark-text" htmlFor="confirmPassword">

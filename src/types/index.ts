@@ -6,15 +6,9 @@
 // USUARIO
 // =====================================================
 export interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  role: 'cliente' | 'administrador';
-  address?: Address;
-  createdAt?: string;
-  updatedAt?: string;
+  correo: string;
+  nombre: string;
+  role: 'Cliente' | 'Admin';
 }
 
 export interface Address {
@@ -29,21 +23,20 @@ export interface Address {
 }
 
 export interface LoginCredentials {
-  email: string;
-  password: string;
+  correo: string;
+  contrasena: string;
 }
 
 export interface RegisterData {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
+  nombre: string;
+  correo: string;
+  contrasena: string;
 }
 
 export interface AuthResponse {
-  user: User;
+  usuario: User;
   token: string;
+  message?: string;
 }
 
 // =====================================================
@@ -80,57 +73,43 @@ export interface DeliveryOption {
 // PRODUCTO
 // =====================================================
 export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: ProductCategory;
-  image: string;
-  discount?: number;
-  isAvailable: boolean;
-  isNew?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  local_id: string;
+  nombre: string;
+  precio: number;
+  categoria: string;
+  stock: number;
+  descripcion?: string;
+  imagen?: string;
 }
 
 export type ProductCategory =
-  | 'Platos'
-  | 'Entradas'
-  | 'Bebidas'
-  | 'Postres'
-  | 'Para compartir';
+  | "Arroces" | "Tallarines" | "Pollo al wok" | "Carne de res" | "Cerdo"
+  | "Mariscos" | "Entradas" | "Guarniciones" | "Sopas" | "Combos" | "Bebidas" | "Postres";
 
 // =====================================================
 // OFERTA
 // =====================================================
 export interface Offer {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  discountPercentage: number;
-  validFrom: string;
-  validUntil: string;
-  products: string[]; // IDs de productos incluidos
-  isActive: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  local_id: string;
+  oferta_id: string;
+  nombre: string;
+  descripcion: string;
+  imagen_url: string;
+  precio: number;
+  productos_incluidos: string[];
 }
 
 // =====================================================
 // COMBO
 // =====================================================
 export interface Combo {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  price: number;
-  products: ComboProduct[];
-  discount?: number;
-  isAvailable: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  local_id: string;
+  combo_id: string;
+  nombre: string;
+  descripcion: string;
+  imagen_url: string;
+  precio: number;
+  productos_incluidos: ComboProduct[];
 }
 
 export interface ComboProduct {

@@ -13,7 +13,7 @@ const commonHeaders = {
 // =====================================================
 // Endpoints: /register, /login, /users, /users/{id}
 export const usersClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_USERS_URL || 'http://localhost:3001/api/users',
+  baseURL: import.meta.env.VITE_API_USUARIOS_URL || '',
   timeout,
   headers: commonHeaders
 });
@@ -23,7 +23,7 @@ export const usersClient: AxiosInstance = axios.create({
 // =====================================================
 // Endpoints: /stores, /stores/{id}, /delivery-types
 export const storesClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_STORES_URL || 'http://localhost:3002/api/stores',
+  baseURL: import.meta.env.VITE_API_LOCALES_URL || '',
   timeout,
   headers: commonHeaders
 });
@@ -33,7 +33,7 @@ export const storesClient: AxiosInstance = axios.create({
 // =====================================================
 // Endpoints: /products, /orders, /offers, /combos
 export const ordersClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_ORDERS_URL || 'http://localhost:3003/api/orders',
+  baseURL: import.meta.env.VITE_API_PEDIDOS_URL || '',
   timeout,
   headers: commonHeaders
 });
