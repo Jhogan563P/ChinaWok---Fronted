@@ -196,6 +196,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   type: 'product' | 'combo' | 'offer';
+  category?: ProductCategory | 'Oferta' | 'Combo'; // Añadir categoría
   maxQuantity?: number;
   includedProducts?: string[]; // Para combos
 }

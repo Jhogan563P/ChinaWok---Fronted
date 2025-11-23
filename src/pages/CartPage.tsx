@@ -102,7 +102,7 @@ const CartPage = () => {
 
       alert('¡Pedido creado exitosamente!');
       clearCart();
-      navigate('/perfil'); // Redirigir al perfil para que el usuario vea los cambios
+      navigate('/me'); // Redirigir a la página del usuario
     } catch (error: any) {
       console.error('Error al procesar el pedido:', error);
       const msg = error.response?.data?.message || error.message || 'Error desconocido';
