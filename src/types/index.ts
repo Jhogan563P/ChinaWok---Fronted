@@ -39,7 +39,6 @@ export interface RegisterData {
   nombre: string;
   correo: string;
   contrasena: string;
-  informacion_bancaria: BankingInfo;
 }
 
 export interface AuthResponse {

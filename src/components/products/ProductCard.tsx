@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Product } from '../../types';
 import { useCart } from '../../contexts/CartContext';
 import type { CartItem } from '../../types';
+import { getEmojiForCategory } from '../../utils/emojiMapping';
 
 interface ProductCardProps {
   product: Product;
@@ -34,8 +35,10 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-      <div className="relative">
-        <img src={product.imagen} alt={product.nombre} className="h-48 w-full object-cover" />
+      <div className="relative flex h-48 w-full items-center justify-center bg-gray-50 text-6xl">
+        <span role="img" aria-label={product.categoria}>
+          {getEmojiForCategory(product.categoria)}
+        </span>
         {currentQuantity > 0 && (
           <span className="absolute right-4 top-4 inline-flex items-center justify-center rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-white shadow-lg">
             {currentQuantity}

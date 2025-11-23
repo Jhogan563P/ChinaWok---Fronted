@@ -12,11 +12,7 @@ const RegisterPage = () => {
     nombre: '',
     correo: '',
     contrasena: '',
-    confirmPassword: '',
-    numero_tarjeta: '',
-    cvv: '',
-    fecha_vencimiento: '',
-    direccion_delivery: ''
+    confirmPassword: ''
   });
 
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -46,29 +42,6 @@ const RegisterPage = () => {
       newErrors.confirmPassword = 'Las contraseñas no coinciden';
     }
 
-    // Validar información bancaria
-    if (!form.numero_tarjeta.trim()) {
-      newErrors.numero_tarjeta = 'El número de tarjeta es requerido';
-    } else if (!/^[0-9]{13,19}$/.test(form.numero_tarjeta.replace(/\s/g, ''))) {
-      newErrors.numero_tarjeta = 'El número de tarjeta debe tener entre 13 y 19 dígitos';
-    }
-
-    if (!form.cvv.trim()) {
-      newErrors.cvv = 'El CVV es requerido';
-    } else if (!/^[0-9]{3,4}$/.test(form.cvv)) {
-      newErrors.cvv = 'El CVV debe tener 3 o 4 dígitos';
-    }
-
-    if (!form.fecha_vencimiento.trim()) {
-      newErrors.fecha_vencimiento = 'La fecha de vencimiento es requerida';
-    } else if (!/^(0[1-9]|1[0-2])\/[0-9]{2}$/.test(form.fecha_vencimiento)) {
-      newErrors.fecha_vencimiento = 'Formato inválido (MM/YY)';
-    }
-
-    if (!form.direccion_delivery.trim()) {
-      newErrors.direccion_delivery = 'La dirección de entrega es requerida';
-    }
-
     if (!acceptTerms) {
       newErrors.terms = 'Debes aceptar los términos y condiciones';
     }
@@ -90,13 +63,7 @@ const RegisterPage = () => {
       const registerData: RegisterData = {
         nombre: form.nombre,
         correo: form.correo,
-        contrasena: form.contrasena,
-        informacion_bancaria: {
-          numero_tarjeta: form.numero_tarjeta.replace(/\s/g, ''),
-          cvv: form.cvv,
-          fecha_vencimiento: form.fecha_vencimiento,
-          direccion_delivery: form.direccion_delivery
-        }
+        contrasena: form.contrasena
       };
 
       await register(registerData);
@@ -193,77 +160,6 @@ const RegisterPage = () => {
             </div>
           </div>
 
-          <div className="border-t border-gray-200 pt-4">
-            <h3 className="mb-3 text-sm font-semibold text-dark-text">Información de Pago y Entrega</h3>
-
-            <div>
-              <label className="text-sm font-semibold text-dark-text" htmlFor="numero_tarjeta">
-                Número de Tarjeta
-              </label>
-              <input
-                id="numero_tarjeta"
-                type="text"
-                value={form.numero_tarjeta}
-                onChange={(e) => setForm({ ...form, numero_tarjeta: e.target.value })}
-                className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${errors.numero_tarjeta ? 'border-red-500' : 'border-gray-200 focus:border-primary'
-                  }`}
-                placeholder="4557 8800 1234 5678"
-                maxLength={19}
-              />
-              {errors.numero_tarjeta && <p className="mt-1 text-xs text-red-500">{errors.numero_tarjeta}</p>}
-            </div>
-
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-sm font-semibold text-dark-text" htmlFor="fecha_vencimiento">
-                  Vencimiento (MM/YY)
-                </label>
-                <input
-                  id="fecha_vencimiento"
-                  type="text"
-                  value={form.fecha_vencimiento}
-                  onChange={(e) => setForm({ ...form, fecha_vencimiento: e.target.value })}
-                  className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${errors.fecha_vencimiento ? 'border-red-500' : 'border-gray-200 focus:border-primary'
-                    }`}
-                  placeholder="12/25"
-                  maxLength={5}
-                />
-                {errors.fecha_vencimiento && <p className="mt-1 text-xs text-red-500">{errors.fecha_vencimiento}</p>}
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-dark-text" htmlFor="cvv">
-                  CVV
-                </label>
-                <input
-                  id="cvv"
-                  type="text"
-                  value={form.cvv}
-                  onChange={(e) => setForm({ ...form, cvv: e.target.value })}
-                  className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${errors.cvv ? 'border-red-500' : 'border-gray-200 focus:border-primary'
-                    }`}
-                  placeholder="123"
-                  maxLength={4}
-                />
-                {errors.cvv && <p className="mt-1 text-xs text-red-500">{errors.cvv}</p>}
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-dark-text" htmlFor="direccion_delivery">
-                Dirección de Entrega
-              </label>
-              <input
-                id="direccion_delivery"
-                type="text"
-                value={form.direccion_delivery}
-                onChange={(e) => setForm({ ...form, direccion_delivery: e.target.value })}
-                className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${errors.direccion_delivery ? 'border-red-500' : 'border-gray-200 focus:border-primary'
-                  }`}
-                placeholder="Av. Principal 123, Distrito"
-              />
-              {errors.direccion_delivery && <p className="mt-1 text-xs text-red-500">{errors.direccion_delivery}</p>}
-            </div>
-          </div>
 
           <div className="flex items-start gap-3 text-xs text-gray-500">
             <input

@@ -39,37 +39,36 @@ const CartPage = () => {
       return;
     }
 
-    // Obtener usuario (ya disponible desde useAuth)
-    // const userStr = localStorage.getItem('user');
-    // const user = userStr ? JSON.parse(userStr) : null;
-
     if (!user || !user.correo) {
       alert('Error: No se pudo identificar al usuario.');
       return;
     }
 
-    // Usar los estados del componente en lugar de leer del DOM directamente
-    if (!address || !cardNumber || !expiry || !cvv) {
-      alert('Por favor completa todos los campos de envío y pago.');
+    // Validar que todos los campos requeridos estén llenos antes de proceder
+    if (!address.trim() || !cardNumber.trim() || !expiry.trim() || !cvv.trim()) {
+      alert('Por favor, completa todos los campos de Dirección de Entrega, Número de Tarjeta, Vencimiento y CVV.');
       return;
     }
 
     try {
       const { createOrder } = await import('../services/orderService');
-      const { updateMyProfile } = await import('../services/userService'); // Renombrado
+      const { updateMyProfile } = await import('../services/userService');
 
-      // 1. Actualizar información del usuario si ha sido editada o si no existía previamente
-      // Solo actualizamos si el usuario ha editado o si los campos no estaban pre-llenados (es decir, eran vacíos y ahora se rellenaron)
-      if (isEditingBankingInfo || !user.informacion_bancaria) { // O si la info bancaria no existía
-        await updateMyProfile({
-          informacion_bancaria: {
-            numero_tarjeta: cardNumber,
-            cvv: cvv,
-            fecha_vencimiento: expiry,
-            direccion_delivery: address
-          }
-        });
-      }
+      // 1. Actualizar información del usuario (información bancaria y dirección de entrega)
+      // Siempre se intentará actualizar con los valores actuales del formulario
+      await updateMyProfile({
+        correo: user.correo, // Añadir el correo del usuario
+        nombre: user.nombre, // Añadir el nombre del usuario
+        informacion_bancaria: {
+          numero_tarjeta: cardNumber,
+          cvv: cvv,
+          fecha_vencimiento: expiry,
+          direccion_delivery: address
+        }
+      });
+      // Después de una actualización exitosa, la info del user en el AuthContext se refrescará con los nuevos datos.
+      // Por lo tanto, no necesitamos una lógica condicional (isEditingBankingInfo || !user.informacion_bancaria)
+      // ya que la actualización siempre se intenta con los datos del formulario.
 
 
       // 2. Crear el pedido
