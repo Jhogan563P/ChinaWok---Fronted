@@ -6,6 +6,7 @@ import PromotionsPage from '../pages/PromotionsPage';
 import RegisterPage from '../pages/RegisterPage';
 import LoginPage from '../pages/LoginPage';
 import StoresPage from '../pages/StoresPage';
+import ProfilePage from '../pages/ProfilePage';
 
 const AppRoutes = () => (
   <Routes>
@@ -17,6 +18,7 @@ const AppRoutes = () => (
       <Route path="/mi-carrito" element={<CartPage />} />
       <Route path="/registro" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/me" element={<ProfilePage />} />
     </Route>
   </Routes>
 );

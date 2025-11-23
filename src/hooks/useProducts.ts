@@ -1,22 +1,27 @@
 import { useEffect, useState, useMemo } from 'react';
 import type { Product } from '../types';
 import { listProducts } from '../services/productService';
+import { useStore } from '../contexts/StoreContext';
 
 interface UseProductsOptions {
   localId?: string;
   categoria?: string;
 }
 
-export const useProducts = ({ localId = "b72f395a-38c0-4b02-bf08-2c1b2da5834b", categoria }: UseProductsOptions = {}) => {
+export const useProducts = ({ localId, categoria }: UseProductsOptions = {}) => {
+  const { selectedStore } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Usar ID proporcionado o el del contexto
+  const targetLocalId = localId || selectedStore?.id;
 
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
 
-    if (localId) {
-      listProducts(localId)
+    if (targetLocalId) {
+      listProducts(targetLocalId)
         .then((items) => {
           if (isMounted) {
             setProducts(items);
@@ -27,12 +32,14 @@ export const useProducts = ({ localId = "b72f395a-38c0-4b02-bf08-2c1b2da5834b", 
             setLoading(false);
           }
         });
+    } else {
+      setLoading(false);
     }
 
     return () => {
       isMounted = false;
     };
-  }, [localId]);
+  }, [targetLocalId]);
 
   const filteredProducts = useMemo(() => {
     if (categoria && categoria !== 'Para compartir') {

@@ -1,12 +1,19 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { stores } from '../data/stores';
+import { Link, useNavigate } from 'react-router-dom';
+import { useStore } from '../contexts/StoreContext';
 import { getDeliveryOptions } from '../services/storeService';
 
 const StoresPage = () => {
+  const { stores, loading, selectStore } = useStore();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [selectedDeliveryType, setSelectedDeliveryType] = useState<string>('all');
   const deliveryOptions = getDeliveryOptions();
+
+  const handleSelectStore = async (storeId: string) => {
+    await selectStore(storeId);
+    navigate('/menu');
+  };
 
   const filteredStores = useMemo(() => {
     let filtered = stores;
@@ -21,12 +28,20 @@ const StoresPage = () => {
     // Filtrar por tipo de despacho
     if (selectedDeliveryType !== 'all') {
       filtered = filtered.filter((store) =>
-        store.deliveryType.toLowerCase().includes(selectedDeliveryType)
+        store.deliveryTypes.includes(selectedDeliveryType as any)
       );
     }
 
     return filtered;
-  }, [search, selectedDeliveryType]);
+  }, [stores, search, selectedDeliveryType]);
+
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-6 py-10">
@@ -42,11 +57,10 @@ const StoresPage = () => {
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => setSelectedDeliveryType('all')}
-              className={`flex items-center gap-2 rounded-full border px-6 py-3 text-sm font-semibold transition ${
-                selectedDeliveryType === 'all'
-                  ? 'border-primary bg-primary text-white'
-                  : 'border-gray-200 bg-white text-gray-700 hover:border-primary'
-              }`}
+              className={`flex items-center gap-2 rounded-full border px-6 py-3 text-sm font-semibold transition ${selectedDeliveryType === 'all'
+                ? 'border-primary bg-primary text-white'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-primary'
+                }`}
             >
               <span className="text-lg">🌟</span>
               Todos
@@ -55,11 +69,10 @@ const StoresPage = () => {
               <button
                 key={option.type}
                 onClick={() => setSelectedDeliveryType(option.type)}
-                className={`flex items-center gap-2 rounded-full border px-6 py-3 text-sm font-semibold transition ${
-                  selectedDeliveryType === option.type
-                    ? 'border-secondary bg-secondary text-white'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-secondary'
-                }`}
+                className={`flex items-center gap-2 rounded-full border px-6 py-3 text-sm font-semibold transition ${selectedDeliveryType === option.type
+                  ? 'border-secondary bg-secondary text-white'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-secondary'
+                  }`}
               >
                 <span className="text-lg">{option.icon}</span>
                 {option.label}
@@ -116,8 +129,8 @@ const StoresPage = () => {
                 <div>
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="text-xl font-semibold text-dark-text">{store.name}</h3>
-                      <p className="mt-1 text-sm text-gray-600">{store.address}</p>
+                      <h3 className="text-xl font-semibold text-dark-text">{store.address}</h3>
+                      <p className="mt-1 text-sm text-gray-600">🕒 {store.openingHours}</p>
                       {store.phone && (
                         <p className="mt-2 text-sm font-semibold text-primary">
                           📞 {store.phone}
@@ -129,17 +142,14 @@ const StoresPage = () => {
                   {/* Tipos de despacho del local */}
                   <div className="mt-4 flex flex-wrap gap-2">
                     {deliveryOptions.map((option) => {
-                      const hasDeliveryType = store.deliveryType
-                        .toLowerCase()
-                        .includes(option.type);
+                      const hasDeliveryType = store.deliveryTypes.includes(option.type);
                       return (
                         <span
                           key={option.type}
-                          className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
-                            hasDeliveryType
-                              ? 'bg-secondary/10 text-secondary'
-                              : 'bg-gray-100 text-gray-400'
-                          }`}
+                          className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${hasDeliveryType
+                            ? 'bg-secondary/10 text-secondary'
+                            : 'bg-gray-100 text-gray-400'
+                            }`}
                         >
                           <span>{option.icon}</span>
                           {option.label}
@@ -160,12 +170,12 @@ const StoresPage = () => {
                   >
                     Ver dirección
                   </a>
-                  <Link
-                    to="/menu"
+                  <button
+                    onClick={() => handleSelectStore(store.id)}
                     className="text-sm font-semibold text-primary hover:text-secondary"
                   >
                     Ordenar aquí →
-                  </Link>
+                  </button>
                 </div>
               </article>
             ))}

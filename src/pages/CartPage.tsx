@@ -1,21 +1,114 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useState } from 'react'; // Añadir useEffect y useState
+import { getCurrentUser } from '../services/userService'; // Añadir getCurrentUser
 
 const CartPage = () => {
   const { cart, removeItem, updateItemQuantity, clearCart, itemCount } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth(); // Añadir user al desestructurar
   const navigate = useNavigate();
 
-  const handleCheckout = () => {
+  // Estados para manejar los datos del formulario de entrega y pago
+  const [address, setAddress] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [isEditingBankingInfo, setIsEditingBankingInfo] = useState(false); // Nuevo estado
+
+  // Cargar información bancaria del usuario al montar o cuando el usuario cambia
+  useEffect(() => {
+    if (isAuthenticated && user?.informacion_bancaria && !isEditingBankingInfo) {
+      setAddress(user.informacion_bancaria.direccion_delivery || '');
+      setCardNumber(user.informacion_bancaria.numero_tarjeta || '');
+      setExpiry(user.informacion_bancaria.fecha_vencimiento || '');
+      setCvv(user.informacion_bancaria.cvv || '');
+    } else if (!isAuthenticated || !user?.informacion_bancaria) {
+      // Limpiar campos si no está autenticado o no tiene info bancaria
+      setAddress('');
+      setCardNumber('');
+      setExpiry('');
+      setCvv('');
+    }
+  }, [isAuthenticated, user, isEditingBankingInfo]);
+
+
+  const handleCheckout = async () => {
     if (!isAuthenticated) {
-      // Redirigir a registro/login si no está autenticado
       navigate('/registro', { state: { from: '/mi-carrito' } });
       return;
     }
 
-    // TODO: Implementar flujo de checkout cuando tengas la API
-    alert('Funcionalidad de checkout pendiente de implementación con API');
+    // Obtener usuario (ya disponible desde useAuth)
+    // const userStr = localStorage.getItem('user');
+    // const user = userStr ? JSON.parse(userStr) : null;
+
+    if (!user || !user.correo) {
+      alert('Error: No se pudo identificar al usuario.');
+      return;
+    }
+
+    // Usar los estados del componente en lugar de leer del DOM directamente
+    if (!address || !cardNumber || !expiry || !cvv) {
+      alert('Por favor completa todos los campos de envío y pago.');
+      return;
+    }
+
+    try {
+      const { createOrder } = await import('../services/orderService');
+      const { updateMyProfile } = await import('../services/userService'); // Renombrado
+
+      // 1. Actualizar información del usuario si ha sido editada o si no existía previamente
+      // Solo actualizamos si el usuario ha editado o si los campos no estaban pre-llenados (es decir, eran vacíos y ahora se rellenaron)
+      if (isEditingBankingInfo || !user.informacion_bancaria) { // O si la info bancaria no existía
+        await updateMyProfile({
+          informacion_bancaria: {
+            numero_tarjeta: cardNumber,
+            cvv: cvv,
+            fecha_vencimiento: expiry,
+            direccion_delivery: address
+          }
+        });
+      }
+
+
+      // 2. Crear el pedido
+      const storeId = localStorage.getItem('selectedStoreId');
+      if (!storeId) {
+        alert('Error: No hay una tienda seleccionada.');
+        return;
+      }
+
+      await createOrder({
+        userId: user.correo,
+        storeId: storeId,
+        items: cart.items.map(item => ({
+          productId: item.id,
+          productName: item.name,
+          productImage: item.image,
+          quantity: item.quantity,
+          price: item.price,
+          subtotal: item.price * item.quantity,
+          type: item.type,
+          includedProducts: item.includedProducts
+        })),
+        deliveryType: 'delivery',
+        deliveryAddress: {
+          street: address,
+          district: 'Lima', // Simplificado
+          city: 'Lima'
+        },
+        paymentMethod: 'card'
+      });
+
+      alert('¡Pedido creado exitosamente!');
+      clearCart();
+      navigate('/perfil'); // Redirigir al perfil para que el usuario vea los cambios
+    } catch (error: any) {
+      console.error('Error al procesar el pedido:', error);
+      const msg = error.response?.data?.message || error.message || 'Error desconocido';
+      alert(`Hubo un error al procesar tu pedido: ${msg}`);
+    }
   };
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
@@ -33,6 +126,8 @@ const CartPage = () => {
       clearCart();
     }
   };
+
+  const hasBankingInfo = !!user?.informacion_bancaria?.numero_tarjeta;
 
   if (itemCount === 0) {
     return (
@@ -132,6 +227,8 @@ const CartPage = () => {
 
       <aside className="mt-8 space-y-4 rounded-3xl bg-white p-6 shadow-sm lg:mt-0 lg:self-start lg:sticky lg:top-24">
         <h2 className="text-xl font-semibold text-dark-text">Resumen del pedido</h2>
+
+        {/* Paso 1: Resumen de Costos */}
         <div className="space-y-3 text-sm text-gray-600">
           <div className="flex justify-between">
             <span>Subtotal ({itemCount} {itemCount === 1 ? 'producto' : 'productos'})</span>
@@ -141,26 +238,116 @@ const CartPage = () => {
             <span>Delivery</span>
             <span>S/ {cart.deliveryFee.toFixed(2)}</span>
           </div>
-          {cart.deliveryFee === 0 && itemCount > 0 && (
-            <p className="text-xs text-gray-500">
-              El costo de delivery se calculará al finalizar la compra
+          <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+            <span className="text-lg font-semibold text-dark-text">Total</span>
+            <span className="text-xl font-bold text-primary">S/ {cart.total.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Paso 2: Datos de Entrega y Pago */}
+        {isAuthenticated ? (
+          <div className="mt-6 border-t border-gray-100 pt-6">
+            <h3 className="mb-4 font-semibold text-dark-text">Datos de Entrega y Pago</h3>
+            <form id="checkout-form" className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-700">Dirección de Entrega</label>
+                <input
+                  type="text"
+                  id="address"
+                  placeholder="Av. Principal 123, Distrito"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  disabled={hasBankingInfo && !isEditingBankingInfo}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-gray-700">Número de Tarjeta</label>
+                  <input
+                    type="text"
+                    id="cardNumber"
+                    placeholder="4557 8800 1234 5678"
+                    maxLength={19}
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(e.target.value)}
+                    disabled={hasBankingInfo && !isEditingBankingInfo}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-700">Vencimiento (MM/YY)</label>
+                  <input
+                    type="text"
+                    id="expiry"
+                    placeholder="12/25"
+                    maxLength={5}
+                    value={expiry}
+                    onChange={(e) => setExpiry(e.target.value)}
+                    disabled={hasBankingInfo && !isEditingBankingInfo}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-700">CVV</label>
+                  <input
+                    type="text"
+                    id="cvv"
+                    placeholder="123"
+                    maxLength={4}
+                    value={cvv}
+                    onChange={(e) => setCvv(e.target.value)}
+                    disabled={hasBankingInfo && !isEditingBankingInfo}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-secondary focus:outline-none"
+                  />
+                </div>
+              </div>
+            </form>
+
+            {hasBankingInfo && (
+              <p className="mt-4 text-sm text-gray-600">
+                Ya tienes información de pago guardada.
+                {isEditingBankingInfo ? (
+                  <button
+                    onClick={() => setIsEditingBankingInfo(false)}
+                    className="ml-2 text-primary hover:underline font-semibold"
+                  >
+                    Cancelar edición
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setIsEditingBankingInfo(true)}
+                    className="ml-2 text-primary hover:underline font-semibold"
+                  >
+                    Editar
+                  </button>
+                )}
+              </p>
+            )}
+
+            <button
+              onClick={handleCheckout}
+              className="mt-6 w-full rounded-full bg-secondary py-3 text-sm font-semibold text-white transition hover:bg-secondary/90 active:scale-95"
+            >
+              Finalizar Compra
+            </button>
+            <p className="mt-2 text-center text-xs text-gray-500">
+              Al finalizar, tus datos de entrega y pago se actualizarán en tu perfil.
             </p>
-          )}
-        </div>
-        <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-          <span className="text-lg font-semibold text-dark-text">Total</span>
-          <span className="text-xl font-bold text-primary">S/ {cart.total.toFixed(2)}</span>
-        </div>
-        <button
-          onClick={handleCheckout}
-          className="w-full rounded-full bg-secondary py-3 text-sm font-semibold text-white transition hover:bg-secondary/90 active:scale-95"
-        >
-          {isAuthenticated ? 'Finalizar compra' : 'Inicia sesión para continuar'}
-        </button>
-        {!isAuthenticated && (
-          <p className="text-center text-xs text-gray-500">
-            Debes iniciar sesión para completar tu pedido
-          </p>
+          </div>
+        ) : (
+          <div className="mt-6">
+            <button
+              onClick={() => navigate('/login', { state: { from: '/mi-carrito' } })}
+              className="w-full rounded-full bg-secondary py-3 text-sm font-semibold text-white transition hover:bg-secondary/90 active:scale-95"
+            >
+              Inicia sesión para continuar
+            </button>
+            <p className="mt-2 text-center text-xs text-gray-500">
+              Debes iniciar sesión para completar tu pedido
+            </p>
+          </div>
         )}
       </aside>
     </div>

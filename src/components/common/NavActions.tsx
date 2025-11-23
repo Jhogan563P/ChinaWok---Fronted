@@ -26,11 +26,15 @@ const NavActions = () => {
         <span>S/ {cart.total.toFixed(2)}</span>
       </NavLink>
 
+
       {isAuthenticated && user ? (
         <div className="hidden items-center gap-3 md:flex">
-          <span className="text-sm text-gray-600">
-            Hola, {user.firstName}
-          </span>
+          <NavLink
+            to="/me"
+            className="text-sm text-gray-600 transition hover:text-primary"
+          >
+            Hola, {user.nombre}
+          </NavLink>
           <button
             onClick={handleLogout}
             className="items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-primary transition hover:border-primary hover:bg-primary hover:text-white"

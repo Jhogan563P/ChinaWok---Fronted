@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import LocationDropdown from '../common/LocationDropdown';
 import NavActions from '../common/NavActions';
+import ChinaWokLogo from '../../../assets/logo_chinawok.png'; // Corregida la ruta de importación
 
 const navLinks = [
   { to: '/menu', label: 'Menú' },
@@ -15,8 +16,9 @@ const Header = () => {
         Comunícate con nosotros: (01) 652 - 8000
       </div>
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
-        <NavLink to="/promociones" className="flex items-center gap-2">
-          <img src="https://www.chinawok.com.pe/img/logo.svg" alt="China Wok logo" className="h-10" />
+        {/* Cambiar la ruta del logo a /menu y usar el logo importado */}
+        <NavLink to="/menu" className="flex items-center gap-2">
+          <img src={ChinaWokLogo} alt="China Wok logo" className="h-10" />
         </NavLink>
         <LocationDropdown />
         <nav className="hidden items-center gap-6 text-sm font-medium text-dark-text md:flex">

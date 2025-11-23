@@ -128,15 +128,32 @@ const HomePage = () => {
 
       {/* ------------------- SECCIÓN COMBOS ------------------- */}
       <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-dark-text">Combos</h2>
-          <a href="#" className="text-sm font-semibold text-secondary hover:text-primary">
-            Ver todos
-          </a>
+        <div>
+          <p className="text-xs font-semibold uppercase text-secondary">Combos</p>
+          <h2 className="text-2xl font-semibold text-dark-text">Nuestros Combos</h2>
         </div>
-
         {loadingCombos ? (
           <SkeletonGrid />
+        ) : combos.length === 0 ? (
+          <div className="rounded-3xl bg-gray-50 p-12 text-center">
+            <svg
+              className="mx-auto h-16 w-16 text-gray-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+              />
+            </svg>
+            <h3 className="mt-4 text-lg font-semibold text-dark-text">No hay combos disponibles</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Este local no tiene combos activos en este momento.
+            </p>
+          </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {combos.map((combo) => (

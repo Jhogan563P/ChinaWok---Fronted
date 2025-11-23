@@ -9,6 +9,14 @@ export interface User {
   correo: string;
   nombre: string;
   role: 'Cliente' | 'Admin';
+  informacion_bancaria?: BankingInfo;
+}
+
+export interface BankingInfo {
+  numero_tarjeta: string;
+  cvv: string;
+  fecha_vencimiento: string;
+  direccion_delivery: string;
 }
 
 export interface Address {
@@ -31,6 +39,7 @@ export interface RegisterData {
   nombre: string;
   correo: string;
   contrasena: string;
+  informacion_bancaria: BankingInfo;
 }
 
 export interface AuthResponse {
@@ -95,8 +104,11 @@ export interface Offer {
   nombre: string;
   descripcion: string;
   imagen_url: string;
-  precio: number;
-  productos_incluidos: string[];
+  descuento: number; // Porcentaje de descuento (ej. 0.15 para 15%)
+  producto_nombre?: string; // Nombre del producto al que aplica la oferta
+  tipo: 'producto' | 'combo'; // Indica si la oferta aplica a un producto o un combo
+  precio_original?: number; // Precio original del producto o combo
+  precio_con_descuento?: number; // Precio final después de aplicar el descuento
 }
 
 // =====================================================
@@ -107,9 +119,10 @@ export interface Combo {
   combo_id: string;
   nombre: string;
   descripcion: string;
-  imagen_url: string;
-  precio: number;
-  productos_incluidos: ComboProduct[];
+  imagen_url?: string;
+  precio?: number;
+  productos_nombres?: string[];
+  productos_incluidos?: ComboProduct[];
 }
 
 export interface ComboProduct {
@@ -185,6 +198,7 @@ export interface CartItem {
   quantity: number;
   type: 'product' | 'combo' | 'offer';
   maxQuantity?: number;
+  includedProducts?: string[]; // Para combos
 }
 
 export interface Cart {

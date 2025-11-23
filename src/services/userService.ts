@@ -48,6 +48,42 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
 };
 
 /**
+ * Actualiza la información del usuario autenticado (propio perfil)
+ */
+export const updateMyProfile = async (data: Partial<User>): Promise<User> => {
+  try {
+    console.log("userService: Enviando datos para actualizar perfil:", data);
+    // El backend usa /usuario/me para actualizar el perfil propio
+    const response = await usersClient.put<any>('/usuario/me', data);
+    console.log("userService: Respuesta de la API al actualizar perfil:", response.data);
+
+    // El backend responde con un objeto { message: string, usuario: User } o { data: User }
+    const updatedUser = response.data.usuario || response.data.data || response.data;
+    
+    if (updatedUser) {
+      // Convertir a User si viene como un objeto que parece usuario (ej. sin role por defecto)
+      // Asegurarse de que el objeto User tenga el mismo formato que la interfaz User
+      const currentUser = getCurrentUser();
+      const finalUser: User = {
+        correo: updatedUser.correo || (currentUser?.correo || ''),
+        nombre: updatedUser.nombre || (currentUser?.nombre || ''),
+        role: updatedUser.role || (currentUser?.role || 'Cliente'),
+        informacion_bancaria: updatedUser.informacion_bancaria || currentUser?.informacion_bancaria,
+      };
+
+      localStorage.setItem('user', JSON.stringify(finalUser));
+      console.log("userService: Perfil actualizado en localStorage:", finalUser);
+      return finalUser;
+    }
+
+    throw new Error('No se recibió la información actualizada del usuario.');
+  } catch (error) {
+    console.error('userService: Error al actualizar el perfil:', error);
+    throw error;
+  }
+};
+
+/**
  * Cierra sesión
  */
 export const logout = async (): Promise<void> => {
@@ -83,4 +119,20 @@ export const getCurrentUser = (): User | null => {
  */
 export const isAuthenticated = (): boolean => {
   return !!localStorage.getItem('authToken');
+};
+
+/**
+ * Elimina la cuenta del usuario autenticado
+ */
+export const deleteUser = async (): Promise<void> => {
+  try {
+    await usersClient.delete('/usuario/me');
+
+    // Limpiar localStorage
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
 };
