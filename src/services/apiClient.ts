@@ -38,6 +38,16 @@ export const ordersClient: AxiosInstance = axios.create({
   headers: commonHeaders
 });
 
+// Log de las URLs embebidas (se inyectan en build). Útil para debugging en producción.
+/* eslint-disable no-console */
+console.info('Embedded API URLs:', {
+  VITE_API_USUARIOS_URL: import.meta.env.VITE_API_USUARIOS_URL,
+  VITE_API_LOCALES_URL: import.meta.env.VITE_API_LOCALES_URL,
+  VITE_API_PEDIDOS_URL: import.meta.env.VITE_API_PEDIDOS_URL,
+  VITE_API_EMPLEADOS_URL: import.meta.env.VITE_API_EMPLEADOS_URL
+});
+/* eslint-enable no-console */
+
 // =====================================================
 // INTERCEPTORES GLOBALES
 // =====================================================
