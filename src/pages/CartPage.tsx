@@ -7,7 +7,7 @@ import ProductEmoji from '../components/common/ProductEmoji';
 
 const CartPage = () => {
   const { cart, removeItem, updateItemQuantity, clearCart, itemCount } = useCart();
-  const { isAuthenticated, user } = useAuth(); // Añadir user al desestructurar
+  const { isAuthenticated, user, updateUser } = useAuth(); // Añadir user y updateUser al desestructurar
   const navigate = useNavigate();
 
   // Estados para manejar los datos del formulario de entrega y pago
@@ -61,16 +61,25 @@ const CartPage = () => {
 
       if (needsProfileUpdate) {
         console.log('Actualizando información de pago del usuario...');
+
+        const newBankingInfo = {
+          numero_tarjeta: cardNumber.replace(/\s/g, ''), // ✅ Quitar espacios
+          cvv: cvv,
+          fecha_vencimiento: expiry,
+          direccion_delivery: address
+        };
+
         await updateMyProfile({
           correo: user.correo,
           nombre: user.nombre,
-          informacion_bancaria: {
-            numero_tarjeta: cardNumber.replace(/\s/g, ''), // ✅ Quitar espacios
-            cvv: cvv,
-            fecha_vencimiento: expiry,
-            direccion_delivery: address
-          }
+          informacion_bancaria: newBankingInfo
         });
+
+        // Actualizar el contexto local inmediatamente
+        updateUser({
+          informacion_bancaria: newBankingInfo
+        });
+
       } else {
         console.log('Usuario ya tiene información de pago guardada, saltando actualización...');
       }
