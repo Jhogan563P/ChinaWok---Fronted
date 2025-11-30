@@ -54,21 +54,25 @@ const CartPage = () => {
       const { createOrder } = await import('../services/orderService');
       const { updateMyProfile } = await import('../services/userService');
 
-      // 1. Actualizar información del usuario (información bancaria y dirección de entrega)
-      // Siempre se intentará actualizar con los valores actuales del formulario
-      await updateMyProfile({
-        correo: user.correo, // Añadir el correo del usuario
-        nombre: user.nombre, // Añadir el nombre del usuario
-        informacion_bancaria: {
-          numero_tarjeta: cardNumber,
-          cvv: cvv,
-          fecha_vencimiento: expiry,
-          direccion_delivery: address
-        }
-      });
-      // Después de una actualización exitosa, la info del user en el AuthContext se refrescará con los nuevos datos.
-      // Por lo tanto, no necesitamos una lógica condicional (isEditingBankingInfo || !user.informacion_bancaria)
-      // ya que la actualización siempre se intenta con los datos del formulario.
+      // 1. Actualizar información del usuario SOLO si no tiene información bancaria guardada
+      // O si está editando la información existente
+      const needsProfileUpdate = !user.informacion_bancaria || isEditingBankingInfo;
+
+      if (needsProfileUpdate) {
+        console.log('Actualizando información de pago del usuario...');
+        await updateMyProfile({
+          correo: user.correo,
+          nombre: user.nombre,
+          informacion_bancaria: {
+            numero_tarjeta: cardNumber.replace(/\s/g, ''), // ✅ Quitar espacios
+            cvv: cvv,
+            fecha_vencimiento: expiry,
+            direccion_delivery: address
+          }
+        });
+      } else {
+        console.log('Usuario ya tiene información de pago guardada, saltando actualización...');
+      }
 
 
       // 2. Crear el pedido

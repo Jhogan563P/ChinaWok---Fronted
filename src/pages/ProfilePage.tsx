@@ -1,16 +1,27 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useStore } from '../contexts/StoreContext';
 import { updateMyProfile, deleteUser } from '../services/userService';
-import type { BankingInfo } from '../types';
+import { createReview, updateReview, deleteReview } from '../services/reviewService';
+import type { BankingInfo, Review, OrderSummary } from '../types';
 
 const ProfilePage = () => {
     const navigate = useNavigate();
     const { user, isAuthenticated, logout } = useAuth();
+    const { selectedStore } = useStore();
 
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    // Review modal state
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState<OrderSummary | null>(null);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewComment, setReviewComment] = useState('');
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+    const [reviewError, setReviewError] = useState('');
 
     const [form, setForm] = useState({
         nombre: '',
@@ -19,6 +30,10 @@ const ProfilePage = () => {
         fecha_vencimiento: '',
         direccion_delivery: ''
     });
+
+    // Estado para pedidos
+    const [orders, setOrders] = useState<OrderSummary[]>([]);
+    const [isLoadingOrders, setIsLoadingOrders] = useState(true);
 
     // Cargar datos del usuario al montar
     useEffect(() => {
@@ -34,6 +49,37 @@ const ProfilePage = () => {
             fecha_vencimiento: user.informacion_bancaria?.fecha_vencimiento || '',
             direccion_delivery: user.informacion_bancaria?.direccion_delivery || ''
         });
+
+        // Cargar historial de pedidos
+        const fetchOrders = async () => {
+            setIsLoadingOrders(true);
+            try {
+                // Importar dinámicamente para evitar ciclos si fuera necesario
+                const { listUserOrders } = await import('../services/orderService');
+                const userOrders = await listUserOrders();
+
+                // Mapear Order[] a OrderSummary[]
+                const summaries: OrderSummary[] = userOrders.map(o => ({
+                    pedido_id: o.id,
+                    local_id: o.storeId, // Nota: esto vendrá vacío si solo tenemos IDs
+                    fecha: o.createdAt,
+                    total: o.total,
+                    estado: o.status === 'pending' ? 'procesando' :
+                        o.status === 'preparing' ? 'cocinando' :
+                            o.status === 'delivering' ? 'enviando' :
+                                o.status === 'delivered' ? 'recibido' :
+                                    o.status === 'cancelled' ? 'cancelado' : 'procesando'
+                }));
+
+                setOrders(summaries);
+            } catch (error) {
+                console.error('Error cargando pedidos:', error);
+            } finally {
+                setIsLoadingOrders(false);
+            }
+        };
+
+        fetchOrders();
     }, [user, isAuthenticated, navigate]);
 
     const validateForm = (): boolean => {
@@ -70,10 +116,10 @@ const ProfilePage = () => {
 
         try {
             const updateData: any = {
+                correo: user.correo,
                 nombre: form.nombre
             };
 
-            // Solo incluir información bancaria si hay al menos un campo completo
             if (form.numero_tarjeta || form.cvv || form.fecha_vencimiento || form.direccion_delivery) {
                 updateData.informacion_bancaria = {
                     numero_tarjeta: form.numero_tarjeta.replace(/\s/g, ''),
@@ -82,15 +128,11 @@ const ProfilePage = () => {
                     direccion_delivery: form.direccion_delivery
                 };
             }
-            console.log("ProfilePage: Datos enviados para actualizar perfil:", updateData);
 
             await updateMyProfile(updateData);
-            console.log("ProfilePage: Perfil actualizado exitosamente.");
-
             setIsEditing(false);
             alert('Perfil actualizado exitosamente');
         } catch (error: any) {
-            console.error("ProfilePage: Error al actualizar el perfil:", error);
             setErrors({
                 submit: error.response?.data?.message || 'Error al actualizar el perfil. Intenta nuevamente.'
             });
@@ -120,6 +162,52 @@ const ProfilePage = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Review handlers (simplificados para trabajar con resumen)
+    const openReviewModal = (order: OrderSummary) => {
+        setSelectedOrder(order);
+        setReviewRating(5);
+        setReviewComment('');
+        setReviewError('');
+        setShowReviewModal(true);
+    };
+
+    const closeReviewModal = () => {
+        setShowReviewModal(false);
+        setSelectedOrder(null);
+        setReviewRating(5);
+        setReviewComment('');
+        setReviewError('');
+    };
+
+    const handleSubmitReview = async () => {
+        if (!selectedOrder) return;
+
+        setIsSubmittingReview(true);
+        setReviewError('');
+
+        try {
+            // Crear nueva reseña
+            await createReview(
+                selectedOrder.local_id,
+                selectedOrder.pedido_id,
+                reviewRating,
+                reviewComment
+            );
+
+            closeReviewModal();
+            alert('Reseña guardada exitosamente');
+        } catch (error: any) {
+            setReviewError(error.message || 'Error al guardar la reseña');
+        } finally {
+            setIsSubmittingReview(false);
+        }
+    };
+
+    const handleDeleteReview = async (order: OrderSummary) => {
+        // Por ahora deshabilitado - necesita cargar detalles del pedido primero
+        alert('Funcionalidad de eliminar reseña próximamente');
     };
 
     if (!user) {
@@ -169,10 +257,10 @@ const ProfilePage = () => {
                                     onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                                     disabled={!isEditing}
                                     className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${isEditing
-                                            ? errors.nombre
-                                                ? 'border-red-500'
-                                                : 'border-gray-200 focus:border-primary'
-                                            : 'border-gray-100 bg-gray-50'
+                                        ? errors.nombre
+                                            ? 'border-red-500'
+                                            : 'border-gray-200 focus:border-primary'
+                                        : 'border-gray-100 bg-gray-50'
                                         }`}
                                     placeholder="Tu nombre"
                                 />
@@ -207,10 +295,10 @@ const ProfilePage = () => {
                                     onChange={(e) => setForm({ ...form, numero_tarjeta: e.target.value })}
                                     disabled={!isEditing}
                                     className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${isEditing
-                                            ? errors.numero_tarjeta
-                                                ? 'border-red-500'
-                                                : 'border-gray-200 focus:border-primary'
-                                            : 'border-gray-100 bg-gray-50'
+                                        ? errors.numero_tarjeta
+                                            ? 'border-red-500'
+                                            : 'border-gray-200 focus:border-primary'
+                                        : 'border-gray-100 bg-gray-50'
                                         }`}
                                     placeholder="4557 8800 1234 5678"
                                     maxLength={19}
@@ -230,10 +318,10 @@ const ProfilePage = () => {
                                         onChange={(e) => setForm({ ...form, fecha_vencimiento: e.target.value })}
                                         disabled={!isEditing}
                                         className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${isEditing
-                                                ? errors.fecha_vencimiento
-                                                    ? 'border-red-500'
-                                                    : 'border-gray-200 focus:border-primary'
-                                                : 'border-gray-100 bg-gray-50'
+                                            ? errors.fecha_vencimiento
+                                                ? 'border-red-500'
+                                                : 'border-gray-200 focus:border-primary'
+                                            : 'border-gray-100 bg-gray-50'
                                             }`}
                                         placeholder="12/25"
                                         maxLength={5}
@@ -251,10 +339,10 @@ const ProfilePage = () => {
                                         onChange={(e) => setForm({ ...form, cvv: e.target.value })}
                                         disabled={!isEditing}
                                         className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${isEditing
-                                                ? errors.cvv
-                                                    ? 'border-red-500'
-                                                    : 'border-gray-200 focus:border-primary'
-                                                : 'border-gray-100 bg-gray-50'
+                                            ? errors.cvv
+                                                ? 'border-red-500'
+                                                : 'border-gray-200 focus:border-primary'
+                                            : 'border-gray-100 bg-gray-50'
                                             }`}
                                         placeholder="123"
                                         maxLength={4}
@@ -274,10 +362,10 @@ const ProfilePage = () => {
                                     onChange={(e) => setForm({ ...form, direccion_delivery: e.target.value })}
                                     disabled={!isEditing}
                                     className={`mt-1 w-full rounded-full border px-4 py-2 text-sm outline-none ${isEditing
-                                            ? errors.direccion_delivery
-                                                ? 'border-red-500'
-                                                : 'border-gray-200 focus:border-primary'
-                                            : 'border-gray-100 bg-gray-50'
+                                        ? errors.direccion_delivery
+                                            ? 'border-red-500'
+                                            : 'border-gray-200 focus:border-primary'
+                                        : 'border-gray-100 bg-gray-50'
                                         }`}
                                     placeholder="Av. Principal 123, Distrito"
                                 />
@@ -301,7 +389,6 @@ const ProfilePage = () => {
                                 onClick={() => {
                                     setIsEditing(false);
                                     setErrors({});
-                                    // Restaurar valores originales
                                     setForm({
                                         nombre: user.nombre || '',
                                         numero_tarjeta: user.informacion_bancaria?.numero_tarjeta || '',
@@ -319,6 +406,113 @@ const ProfilePage = () => {
                     )}
                 </form>
 
+                {/* Historial de Pedidos */}
+                <section className="mt-8 border-t border-gray-100 pt-6">
+                    <h2 className="mb-4 text-lg font-semibold text-dark-text">Historial de Pedidos</h2>
+
+                    {isLoadingOrders ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary border-t-transparent"></div>
+                            <span className="ml-3 text-sm text-gray-600">Cargando pedidos...</span>
+                        </div>
+                    ) : orders.length === 0 ? (
+                        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-8 text-center">
+                            <svg
+                                className="mx-auto h-16 w-16 text-gray-300"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                                />
+                            </svg>
+                            <p className="mt-4 text-sm font-medium text-gray-600">Aún no tienes pedidos</p>
+                            <p className="mt-1 text-xs text-gray-500">Tus pedidos aparecerán aquí una vez que realices tu primera compra</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {orders.map((order) => {
+                                // Mapear estados del backend a configuración de UI
+                                const getStatusConfig = (estado: string) => {
+                                    const configs: Record<string, { bg: string; text: string; label: string; icon: string }> = {
+                                        'procesando': { bg: 'bg-yellow-50', text: 'text-yellow-700', label: 'Procesando', icon: '🕐' },
+                                        'cocinando': { bg: 'bg-purple-50', text: 'text-purple-700', label: 'Cocinando', icon: '👨‍🍳' },
+                                        'empacando': { bg: 'bg-indigo-50', text: 'text-indigo-700', label: 'Empacando', icon: '📦' },
+                                        'enviando': { bg: 'bg-teal-50', text: 'text-teal-700', label: 'En camino', icon: '🚚' },
+                                        'recibido': { bg: 'bg-green-50', text: 'text-green-700', label: 'Entregado', icon: '✅' },
+                                        'cancelado': { bg: 'bg-red-50', text: 'text-red-700', label: 'Cancelado', icon: '❌' }
+                                    };
+                                    return configs[estado] || configs['procesando'];
+                                };
+
+                                const statusConfig = getStatusConfig(order.estado);
+                                const orderDate = new Date(order.fecha).toLocaleDateString('es-PE', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                });
+
+                                return (
+                                    <div
+                                        key={order.pedido_id}
+                                        onClick={() => {
+                                            // Usar el local seleccionado actual o uno por defecto si no hay
+                                            // El usuario garantizó que el local estaría seleccionado
+                                            const targetLocalId = selectedStore?.id || '4ed35112-f906-453f-a22a-d9055ee86ba3';
+                                            navigate(`/orders/${targetLocalId}/${order.pedido_id}`);
+                                        }}
+                                        className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:shadow-md hover:border-secondary/30"
+                                    >
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3">
+                                                    <h3 className="font-semibold text-dark-text">Pedido #{order.pedido_id?.slice(0, 8) || '???'}</h3>
+                                                    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${statusConfig.bg} ${statusConfig.text}`}>
+                                                        <span>{statusConfig.icon}</span>
+                                                        {statusConfig.label}
+                                                    </span>
+                                                </div>
+                                                <p className="mt-1 text-sm text-gray-500">{orderDate}</p>
+
+                                                {/* Indicador de click para ver detalles */}
+                                                <p className="mt-3 text-sm text-secondary font-medium flex items-center gap-1">
+                                                    Ver detalles del pedido
+                                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </p>
+                                            </div>
+
+                                            <div className="text-right">
+                                                <p className="text-lg font-bold text-primary">S/ {Number(order.total).toFixed(2)}</p>
+
+                                                {/* Botón para dejar reseña (solo para pedidos entregados) */}
+                                                {order.estado === 'recibido' && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openReviewModal(order);
+                                                        }}
+                                                        className="mt-3 rounded-full bg-secondary px-4 py-2 text-xs font-semibold text-white transition hover:bg-secondary/90"
+                                                    >
+                                                        Dejar reseña
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </section>
+
                 {/* Zona de peligro */}
                 <section className="mt-8 border-t border-gray-100 pt-6">
                     <h2 className="mb-2 text-lg font-semibold text-red-600">Zona de Peligro</h2>
@@ -334,6 +528,77 @@ const ProfilePage = () => {
                     </button>
                 </section>
             </div>
+
+            {/* Review Modal */}
+            {showReviewModal && selectedOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+                        <h3 className="text-xl font-bold text-dark-text">
+                            Dejar Reseña
+                        </h3>
+                        <p className="mt-1 text-sm text-gray-600">Pedido #{selectedOrder.pedido_id.slice(0, 8)}</p>
+
+                        <div className="mt-6 space-y-4">
+                            {/* Star Rating */}
+                            <div>
+                                <label className="text-sm font-semibold text-dark-text">Calificación</label>
+                                <div className="mt-2 flex gap-2">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() => setReviewRating(star)}
+                                            className="text-3xl transition hover:scale-110"
+                                        >
+                                            <span className={star <= reviewRating ? 'text-yellow-400' : 'text-gray-300'}>
+                                                ★
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Comment */}
+                            <div>
+                                <label className="text-sm font-semibold text-dark-text" htmlFor="review-comment">
+                                    Comentario (opcional)
+                                </label>
+                                <textarea
+                                    id="review-comment"
+                                    value={reviewComment}
+                                    onChange={(e) => setReviewComment(e.target.value)}
+                                    rows={4}
+                                    className="mt-1 w-full rounded-2xl border border-gray-200 px-4 py-2 text-sm outline-none focus:border-primary"
+                                    placeholder="Cuéntanos sobre tu experiencia..."
+                                />
+                            </div>
+
+                            {reviewError && (
+                                <div className="rounded-full bg-red-50 px-4 py-2 text-sm text-red-600">
+                                    {reviewError}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-6 flex gap-3">
+                            <button
+                                onClick={handleSubmitReview}
+                                disabled={isSubmittingReview}
+                                className="flex-1 rounded-full bg-secondary py-3 text-sm font-semibold text-white transition hover:bg-secondary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {isSubmittingReview ? 'Guardando...' : 'Guardar Reseña'}
+                            </button>
+                            <button
+                                onClick={closeReviewModal}
+                                disabled={isSubmittingReview}
+                                className="flex-1 rounded-full border border-gray-300 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

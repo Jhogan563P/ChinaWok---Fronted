@@ -35,10 +35,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-      <div className="relative flex h-48 w-full items-center justify-center bg-gray-50 text-6xl">
-        <span role="img" aria-label={product.categoria}>
-          {getEmojiForCategory(product.categoria)}
-        </span>
+      <div className="relative flex h-48 w-full items-center justify-center bg-gradient-to-br from-white to-gray-50">
+        <div className="flex h-28 w-28 items-center justify-center rounded-full bg-white shadow-md">
+          <span role="img" aria-label={product.categoria} className="text-5xl">
+            {getEmojiForCategory(product.categoria)}
+          </span>
+        </div>
         {currentQuantity > 0 && (
           <span className="absolute right-4 top-4 inline-flex items-center justify-center rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-white shadow-lg">
             {currentQuantity}

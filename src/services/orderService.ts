@@ -1,8 +1,9 @@
-import { ordersClient } from './apiClient';
+import { ordersClient, usersClient } from './apiClient';
 import type {
   Order,
   CreateOrderData,
   OrderStatus,
+  OrderItem,
   ApiResponse,
   PaginatedResponse
 } from '../types';
@@ -133,27 +134,126 @@ export const getOrderById = async (orderId: string): Promise<Order | null> => {
 
 /**
  * Lista los pedidos del usuario actual
+ * Usa el endpoint dedicado del backend que consulta por usuario_correo
  */
-export const listUserOrders = async (
-  userId: string,
-  page: number = 1,
-  limit: number = 10
-): Promise<Order[]> => {
+export const listUserOrders = async (): Promise<Order[]> => {
   if (USE_MOCK_DATA) {
     await new Promise((resolve) => setTimeout(resolve, 300));
-
-    return mockOrders.filter((o) => o.userId === userId);
+    return mockOrders;
   }
 
   try {
-    const response = await ordersClient.get<PaginatedResponse<Order>>(`/orders`, {
-      params: { userId, page, limit }
-    });
-    return response.data.data;
-  } catch (error) {
-    console.error('Error fetching user orders:', error);
-    throw error;
+    console.log(`[${new Date().toISOString()}] orderService: Obteniendo historial de pedidos`);
+
+    // Usar endpoint correcto del microservicio de usuarios
+    // GET /usuario/me/historial-pedidos
+    // No enviamos detallado=true porque el backend falla.
+    // Solo obtenemos los IDs y el frontend usará el local seleccionado para ver detalles.
+    const response = await usersClient.get<any>('/usuario/me/historial-pedidos');
+
+    // El backend devuelve { message, correo, total_pedidos, pedidos_ids: [] }
+    const pedidosIds = response.data.pedidos_ids || [];
+    console.log(`orderService: ${pedidosIds.length} IDs de pedidos encontrados`);
+
+    if (pedidosIds.length === 0) return [];
+
+    // Mapeamos los IDs a objetos parciales de Order
+    // La información detallada se obtendrá en la página de detalles
+    const orders = pedidosIds.map((id: any) => mapBackendOrderToFrontend(id));
+
+    return orders;
+  } catch (error: any) {
+    const errorDetails = {
+      message: error.message,
+      status: error.response?.status,
+      timestamp: new Date().toISOString()
+    };
+
+    console.error('orderService: Error al obtener pedidos del usuario:', errorDetails);
+    return [];
   }
+};
+
+/**
+ * Mapea un pedido del backend al formato Order del frontend
+ */
+const mapBackendOrderToFrontend = (backendOrder: any): Order => {
+  // Si backendOrder es un string, asumimos que es el ID del pedido
+  if (typeof backendOrder === 'string') {
+    return {
+      id: backendOrder,
+      userId: '', // No disponible
+      storeId: '', // No disponible
+      items: [],
+      subtotal: 0,
+      deliveryFee: 0,
+      total: 0,
+      status: 'pending',
+      deliveryType: 'delivery',
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  // Mapear estados del backend a estados del frontend
+  const statusMap: Record<string, OrderStatus> = {
+    'procesando': 'pending',
+    'cocinando': 'preparing',
+    'empacando': 'preparing',
+    'enviando': 'delivering',
+    'entregado': 'delivered',  // Pedido entregado, esperando confirmación
+    'recibido': 'delivered',
+    'cancelado': 'cancelled'
+  };
+
+  // Construir items del pedido
+  const items: OrderItem[] = [];
+
+  // Agregar productos
+  if (backendOrder.productos && Array.isArray(backendOrder.productos)) {
+    backendOrder.productos.forEach((producto: any) => {
+      items.push({
+        productId: producto.nombre,
+        productName: producto.nombre,
+        productImage: '', // No disponible en el backend
+        quantity: producto.cantidad,
+        price: 0, // No disponible directamente
+        subtotal: 0,
+        type: 'product'
+      });
+    });
+  }
+
+  // Agregar combos
+  if (backendOrder.combos && Array.isArray(backendOrder.combos)) {
+    backendOrder.combos.forEach((combo: any) => {
+      items.push({
+        productId: combo.combo_id,
+        productName: combo.combo_id,
+        productImage: '',
+        quantity: combo.cantidad,
+        price: 0,
+        subtotal: 0,
+        type: 'combo'
+      });
+    });
+  }
+
+  // Obtener la fecha de creación del primer estado del historial
+  const createdAt = backendOrder.historial_estados?.[0]?.hora_inicio || new Date().toISOString();
+
+  return {
+    id: backendOrder.pedido_id,
+    userId: backendOrder.usuario_correo,
+    storeId: backendOrder.local_id,
+    items,
+    subtotal: backendOrder.costo || 0,
+    deliveryFee: 5.0, // Valor por defecto
+    total: backendOrder.costo || 0,
+    status: statusMap[backendOrder.estado] || 'pending',
+    deliveryType: 'delivery',
+    createdAt,
+    estimatedDeliveryTime: backendOrder.fecha_entrega_aproximada
+  };
 };
 
 /**
@@ -193,4 +293,65 @@ export const updateOrderStatus = async (
  */
 export const cancelOrder = async (orderId: string): Promise<Order> => {
   return updateOrderStatus(orderId, 'cancelled');
+};
+
+/**
+ * Obtiene los detalles completos de un pedido específico
+ * Incluye historial de estados completo
+ */
+export const getOrderByIdDetailed = async (localId: string, pedidoId: string): Promise<any> => {
+  try {
+    console.log(`orderService: Obteniendo detalles del pedido ${pedidoId} en local ${localId}`);
+
+    const response = await ordersClient.get<any>('/pedidos', {
+      params: {
+        local_id: localId,
+        pedido_id: pedidoId
+      }
+    });
+
+    const pedido = response.data.data;
+    console.log('orderService: Detalles del pedido obtenidos:', pedido);
+
+    return pedido;
+  } catch (error) {
+    console.error('orderService: Error al obtener detalles del pedido:', error);
+    throw error;
+  }
+};
+
+/**
+ * Confirma la recepción de un pedido entregado
+ */
+export const confirmOrderDelivery = async (
+  pedidoId: string,
+  usuarioCorreo: string,
+  localId?: string
+): Promise<any> => {
+  try {
+    console.log(`orderService: Confirmando recepción del pedido ${pedidoId} en local ${localId}`);
+
+    // Payload expected by backend (see Postman): { local_id, pedido_id, confirmado }
+    const payload: any = {
+      pedido_id: pedidoId,
+      confirmado: true
+    };
+
+    if (localId) payload.local_id = localId;
+    if (usuarioCorreo) payload.usuario_correo = usuarioCorreo;
+
+    const response = await ordersClient.post<any>('/workflow/confirmar', payload);
+
+    console.log('orderService: Recepción confirmada exitosamente');
+    return response.data;
+  } catch (error: any) {
+    // Mejorar logging para mostrar mensaje del backend cuando exista
+    const resp = error?.response?.data;
+    console.error('orderService: Error al confirmar recepción:', {
+      message: error.message,
+      status: error?.response?.status,
+      response: resp
+    });
+    throw error;
+  }
 };

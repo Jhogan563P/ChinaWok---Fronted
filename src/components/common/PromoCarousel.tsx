@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { promoSlides } from '../../data/carousel';
 
 const AUTO_PLAY_INTERVAL = 5000;
 
 const PromoCarousel = () => {
   const [active, setActive] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -13,6 +15,20 @@ const PromoCarousel = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  const handleCTAClick = (slide: typeof promoSlides[0]) => {
+    // Si tiene un link, navegar a esa página
+    if (slide.link) {
+      navigate(slide.link);
+    }
+    // Si tiene scrollTo, hacer scroll suave a esa sección
+    else if (slide.scrollTo) {
+      const element = document.getElementById(slide.scrollTo);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
 
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gray-100">
@@ -32,7 +48,10 @@ const PromoCarousel = () => {
                   Descubre combinaciones irresistibles con ingredientes frescos y el toque oriental
                   que amas.
                 </p>
-                <button className="w-max rounded-full bg-white px-6 py-2 text-sm font-semibold text-primary transition hover:bg-white/80">
+                <button
+                  onClick={() => handleCTAClick(slide)}
+                  className="w-max rounded-full bg-white px-6 py-2 text-sm font-semibold text-primary transition hover:bg-white/80"
+                >
                   {slide.cta}
                 </button>
               </div>
@@ -47,9 +66,8 @@ const PromoCarousel = () => {
             type="button"
             key={slide.id}
             onClick={() => setActive(index)}
-            className={`h-2 rounded-full transition-all ${
-              active === index ? 'w-8 bg-white' : 'w-3 bg-white/50'
-            }`}
+            className={`h-2 rounded-full transition-all ${active === index ? 'w-8 bg-white' : 'w-3 bg-white/50'
+              }`}
             aria-label={`Ir al slide ${index + 1}`}
           />
         ))}

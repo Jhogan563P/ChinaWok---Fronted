@@ -10,6 +10,15 @@ export interface User {
   nombre: string;
   role: 'Cliente' | 'Admin';
   informacion_bancaria?: BankingInfo;
+  historial_pedidos_resumen?: OrderSummary[];
+}
+
+export interface OrderSummary {
+  pedido_id: string;
+  local_id: string;
+  fecha: string;
+  total: number;
+  estado: string;
 }
 
 export interface BankingInfo {
@@ -149,6 +158,22 @@ export interface Order {
   createdAt: string;
   updatedAt?: string;
   estimatedDeliveryTime?: string;
+  hasReview?: boolean;  // indica si el pedido ya tiene reseña
+  userReview?: Review;  // reseña del usuario si existe
+}
+
+// =====================================================
+// RESEÑA
+// =====================================================
+export interface Review {
+  resena_id: string;
+  local_id: string;
+  pedido_id: string;
+  cocinero_dni: string;
+  despachador_dni: string;
+  repartidor_dni: string;
+  resena: string;  // comentario
+  calificacion: number;  // 0-5
 }
 
 export interface OrderItem {
@@ -162,13 +187,23 @@ export interface OrderItem {
 }
 
 export type OrderStatus =
-  | 'pending'      // Pendiente de confirmación
+  | 'pending'      // Pendiente/Procesando
   | 'confirmed'    // Confirmado
-  | 'preparing'    // En preparación
+  | 'preparing'    // En preparación (cocinando/empacando)
   | 'ready'        // Listo para recoger/entregar
   | 'delivering'   // En camino (solo delivery)
-  | 'delivered'    // Entregado
+  | 'delivered'    // Entregado/Recibido
   | 'cancelled';   // Cancelado
+
+// Estados del backend (para referencia)
+export type BackendOrderStatus =
+  | 'procesando'
+  | 'cocinando'
+  | 'empacando'
+  | 'enviando'
+  | 'entregado'   // Pedido entregado, esperando confirmación
+  | 'recibido'    // Confirmado por el usuario
+  | 'cancelado';
 
 export type PaymentMethod =
   | 'cash'
@@ -251,4 +286,50 @@ export interface ApiError {
   error: string;
   message: string;
   statusCode: number;
+}
+
+// =====================================================
+// WEBSOCKET NOTIFICATIONS
+// =====================================================
+export interface WebSocketNotification {
+  tipo: 'ESTADO_ACTUALIZADO' | 'ESTADO_CAMBIADO' | 'PEDIDO_ENTREGADO' | 'PEDIDO_COMPLETADO';
+  pedido_id: string;
+  timestamp: string;
+  datos: NotificationData;
+}
+
+export interface NotificationData {
+  estado: string;
+  empleado?: EmployeeInfo;
+  mensaje: string;
+  accion_requerida?: 'CONFIRMAR_RECEPCION';
+  texto_boton?: string;
+  repartidor_dni?: string;
+}
+
+export interface EmployeeInfo {
+  dni: string;
+  nombre: string;
+  role: 'Cocinero' | 'Despachador' | 'Repartidor';
+}
+
+// =====================================================
+// ORDER HISTORY & DETAILS
+// =====================================================
+export interface OrderStateHistory {
+  estado: string;
+  hora_inicio: string;
+  hora_fin?: string;
+  activo: boolean;
+  empleado_dni?: string;
+}
+
+export interface OrderDetails extends Order {
+  estado: BackendOrderStatus; // Estado actual del pedido del backend
+  costo: number; // Costo total del pedido, como lo usa el backend
+  fecha_entrega_aproximada?: string; // Fecha de entrega aproximada
+  historial_estados: OrderStateHistory[];
+  direccion?: string;
+  productos?: Array<{ nombre: string; cantidad: number }>;
+  combos?: Array<{ combo_id: string; cantidad: number }>;
 }

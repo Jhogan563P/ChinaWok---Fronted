@@ -12,6 +12,7 @@ import { useMemo, useState, useEffect } from 'react';
 const HomePage = () => {
   const [activeCategory, setActiveCategory] = useState('Para compartir');
   const [categories, setCategories] = useState<string[]>(['Para compartir']);
+  const [showAll, setShowAll] = useState(false);
 
   // ------------ PAGINACIÓN ------------
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,15 +38,21 @@ const HomePage = () => {
   // Reset a página 1 al cambiar categoría
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeCategory]);
+  }, [activeCategory, showAll]);
 
   // Filtrado por categoría (manteniendo tu lógica)
   const filteredProducts = useMemo(() => {
+    // Si "Ver todos" está activo, mostrar todos los productos
+    if (showAll) {
+      return products;
+    }
+    // Si la categoría es "Para compartir", mostrar todos
     if (activeCategory === 'Para compartir') {
       return products;
     }
+    // Filtrar por categoría específica
     return products.filter((product) => product.categoria === activeCategory);
-  }, [activeCategory, products]);
+  }, [activeCategory, products, showAll]);
 
   // ------------ PAGINACIÓN: CÁLCULO ------------
   const paginatedProducts = useMemo(() => {
@@ -55,6 +62,15 @@ const HomePage = () => {
   }, [currentPage, filteredProducts]);
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+
+  // Determinar el título de la sección
+  const sectionTitle = showAll ? 'Todos los productos' : activeCategory;
+
+  // Manejar click en "Ver todos"
+  const handleViewAll = () => {
+    setShowAll(true);
+    setActiveCategory('Para compartir');
+  };
 
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-6 py-10">
@@ -71,7 +87,10 @@ const HomePage = () => {
           <ProductFilters
             categories={categories}
             active={activeCategory}
-            onSelect={(categoria) => setActiveCategory(categoria)}
+            onSelect={(categoria) => {
+              setActiveCategory(categoria);
+              setShowAll(false);
+            }}
           />
         </div>
 
@@ -79,12 +98,15 @@ const HomePage = () => {
       </section>
 
       {/* ------------------- SECCIÓN PRODUCTOS ------------------- */}
-      <section className="space-y-6">
+      <section id="products-section" className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-dark-text">Para compartir</h2>
-          <a href="#" className="text-sm font-semibold text-secondary hover:text-primary">
+          <h2 className="text-2xl font-semibold text-dark-text">{sectionTitle}</h2>
+          <button
+            onClick={handleViewAll}
+            className="text-sm font-semibold text-secondary hover:text-primary transition"
+          >
             Ver todos
-          </a>
+          </button>
         </div>
 
         {loadingProducts ? (
@@ -127,7 +149,7 @@ const HomePage = () => {
       </section>
 
       {/* ------------------- SECCIÓN COMBOS ------------------- */}
-      <section className="space-y-6">
+      <section id="combos-section" className="space-y-6">
         <div>
           <p className="text-xs font-semibold uppercase text-secondary">Combos</p>
           <h2 className="text-2xl font-semibold text-dark-text">Nuestros Combos</h2>

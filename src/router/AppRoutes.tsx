@@ -7,11 +7,12 @@ import RegisterPage from '../pages/RegisterPage';
 import LoginPage from '../pages/LoginPage';
 import StoresPage from '../pages/StoresPage';
 import ProfilePage from '../pages/ProfilePage';
+import OrderDetailPage from '../pages/OrderDetailPage';
 
 const AppRoutes = () => (
   <Routes>
     <Route element={<BaseLayout />}>
-      <Route path="/" element={<Navigate to="/promociones" replace />} />
+      <Route path="/" element={<Navigate to="/menu" replace />} />
       <Route path="/menu" element={<HomePage />} />
       <Route path="/promociones" element={<PromotionsPage />} />
       <Route path="/locales" element={<StoresPage />} />
@@ -19,6 +20,7 @@ const AppRoutes = () => (
       <Route path="/registro" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/me" element={<ProfilePage />} />
+      <Route path="/orders/:localId/:pedidoId" element={<OrderDetailPage />} />
     </Route>
   </Routes>
 );

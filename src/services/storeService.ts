@@ -1,6 +1,9 @@
-import { storesClient } from './apiClient';
+import axios, { AxiosError } from 'axios'; // Importar axios y AxiosError
+import { storesClient } from './apiClient'; // Usaremos storesClient en lugar de apiClient por defecto
+// No necesitamos importar apiClient como default si vamos a usar storesClient
 import { stores as mockStores } from '../data/stores';
 import type { Store, DeliveryOption, StoreFilters, ApiResponse } from '../types';
+
 
 // Flag para usar mock data o API real
 const USE_MOCK_DATA = false;
@@ -122,6 +125,56 @@ export const getStoreById = async (id: string): Promise<Store | null> => {
     return mapBackendStoreToFrontend(storeData);
   } catch (error) {
     console.error('Error fetching store:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene estadísticas de un local específico, incluyendo la calificación del cliente
+ */
+export const getStoreStats = async (local_id: string) => {
+  try {
+    const url = '/analitica/estadisticas';
+    // Añadimos un header y un parámetro único para evitar cacheos intermedios
+    console.log(`Debug: Calling storesClient.post ${storesClient.defaults.baseURL}${url} with local_id=${local_id}`);
+
+    // Param único para forzar que la URL sea distinta si algún proxy cachea por URL
+    // Evitamos enviar headers personalizados (p.ej. Cache-Control) porque pueden
+    // causar fallos de CORS si el backend no los incluye en
+    // Access-Control-Allow-Headers del preflight.
+    const config = {
+      params: {
+        _ts: Date.now()
+      }
+    } as any;
+
+    const response = await storesClient.post(url, { local_id }, config);
+
+    // Mostrar tanto el local_id solicitado como el recibido para detectar desajustes
+    console.log(`Debug: Response from ${url} for local_id=${local_id}:`, response.data);
+
+    // Algunos endpoints devuelven la estructura dentro de `data`, otros devuelven directo
+    const respData = response.data && (response.data.data || response.data);
+
+    // Si el backend incluye el campo local_id dentro del body, mostrarlo de forma explícita
+    if (respData && respData.local_id && respData.local_id !== local_id) {
+      console.warn(`Warning: backend returned different local_id. requested=${local_id} returned=${respData.local_id}`);
+    }
+
+    // Intentar devolver las estadísticas dentro de la respuesta de forma segura
+    return (respData && (respData.estadisticas || respData)) || null;
+  } catch (error) {
+    console.error('Error fetching store stats:', error);
+    // Log detallado del error de Axios
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error details:', {
+        message: error.message,
+        code: error.code,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+        requestUrl: error.config?.url,
+      });
+    }
     throw error;
   }
 };
