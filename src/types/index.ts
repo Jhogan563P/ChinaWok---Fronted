@@ -332,4 +332,5 @@ export interface OrderDetails extends Order {
   direccion?: string;
   productos?: Array<{ nombre: string; cantidad: number }>;
   combos?: Array<{ combo_id: string; cantidad: number }>;
+  esperando_confirmacion?: boolean;
 }

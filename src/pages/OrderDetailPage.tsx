@@ -32,6 +32,12 @@ const OrderDetailPage = () => {
             setIsLoading(true);
             const data = await getOrderByIdDetailed(localId, pedidoId);
             setOrderData(data);
+
+            // Verificar si el pedido está esperando confirmación (flag del backend)
+            if (data.esperando_confirmacion) {
+                setShowConfirmButton(true);
+            }
+
             setError(null);
         } catch (err: any) {
             console.error('Error al cargar pedido:', err);
@@ -157,77 +163,77 @@ const OrderDetailPage = () => {
         }
 
         setIsConfirming(true);
-            try {
-                await confirmOrderDelivery(pedidoId, user.correo, localId);
-                // La notificación de confirmación llegará por WebSocket
-            } catch (err: any) {
-                console.error('Error al confirmar recepción:', err);
-                const backendMsg = err?.response?.data?.message || err?.response?.data?.error;
-                alert(backendMsg ? `Error: ${backendMsg}` : 'Error al confirmar la recepción del pedido');
-            } finally {
-                setIsConfirming(false);
-            }
+        try {
+            await confirmOrderDelivery(pedidoId, user.correo, localId);
+            // La notificación de confirmación llegará por WebSocket
+        } catch (err: any) {
+            console.error('Error al confirmar recepción:', err);
+            const backendMsg = err?.response?.data?.message || err?.response?.data?.error;
+            alert(backendMsg ? `Error: ${backendMsg}` : 'Error al confirmar la recepción del pedido');
+        } finally {
+            setIsConfirming(false);
+        }
     };
 
-        // Review handlers
-        const startCreateReview = () => {
-            setReviewRating(5);
-            setReviewComment('');
-            setIsEditingReview(true);
-        };
+    // Review handlers
+    const startCreateReview = () => {
+        setReviewRating(5);
+        setReviewComment('');
+        setIsEditingReview(true);
+    };
 
-        const startEditReview = () => {
-            if (!orderReview) return;
-            setReviewRating(orderReview.calificacion || 5);
-            setReviewComment(orderReview.resena || '');
-            setIsEditingReview(true);
-        };
+    const startEditReview = () => {
+        if (!orderReview) return;
+        setReviewRating(orderReview.calificacion || 5);
+        setReviewComment(orderReview.resena || '');
+        setIsEditingReview(true);
+    };
 
-        const cancelEditReview = () => {
+    const cancelEditReview = () => {
+        setIsEditingReview(false);
+        setReviewRating(5);
+        setReviewComment('');
+    };
+
+    const handleSaveReview = async () => {
+        if (!localId || !pedidoId || !user) return;
+
+        setIsSubmittingReview(true);
+        try {
+            if (orderReview) {
+                // update
+                const updated = await updateReview(localId, orderReview.resena_id, reviewRating, reviewComment);
+                setOrderReview(updated);
+                alert('Reseña actualizada');
+            } else {
+                // create
+                const created = await createReview(localId, pedidoId, reviewRating, reviewComment);
+                setOrderReview(created);
+                alert('Reseña creada');
+            }
             setIsEditingReview(false);
-            setReviewRating(5);
-            setReviewComment('');
-        };
+        } catch (err: any) {
+            console.error('Error guardando reseña:', err);
+            alert(err.message || 'Error al guardar reseña');
+        } finally {
+            setIsSubmittingReview(false);
+        }
+    };
 
-        const handleSaveReview = async () => {
-            if (!localId || !pedidoId || !user) return;
+    const handleDeleteReview = async () => {
+        if (!localId || !orderReview) return;
 
-            setIsSubmittingReview(true);
-            try {
-                if (orderReview) {
-                    // update
-                    const updated = await updateReview(localId, orderReview.resena_id, reviewRating, reviewComment);
-                    setOrderReview(updated);
-                    alert('Reseña actualizada');
-                } else {
-                    // create
-                    const created = await createReview(localId, pedidoId, reviewRating, reviewComment);
-                    setOrderReview(created);
-                    alert('Reseña creada');
-                }
-                setIsEditingReview(false);
-            } catch (err: any) {
-                console.error('Error guardando reseña:', err);
-                alert(err.message || 'Error al guardar reseña');
-            } finally {
-                setIsSubmittingReview(false);
-            }
-        };
+        if (!confirm('¿Eliminar reseña? Esta acción no se puede deshacer.')) return;
 
-        const handleDeleteReview = async () => {
-            if (!localId || !orderReview) return;
-
-            if (!confirm('¿Eliminar reseña? Esta acción no se puede deshacer.')) return;
-
-            try {
-                await deleteReview(localId, orderReview.resena_id);
-                setOrderReview(null);
-                alert('Reseña eliminada');
-            } catch (err: any) {
-                console.error('Error eliminando reseña:', err);
-                alert(err.message || 'Error al eliminar reseña');
-            }
-        };
+        try {
+            await deleteReview(localId, orderReview.resena_id);
+            setOrderReview(null);
+            alert('Reseña eliminada');
+        } catch (err: any) {
+            console.error('Error eliminando reseña:', err);
+            alert(err.message || 'Error al eliminar reseña');
+        }
+    };
 
     // Mapear estados a configuración visual
     const getStatusConfig = (estado: string) => {

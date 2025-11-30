@@ -20,6 +20,12 @@ Aplicación web moderna de e-commerce para delivery de comida, replicando la exp
 - ✅ Persistencia de carrito en localStorage
 - ✅ Cálculo automático de subtotales y delivery
 - ✅ Validación de formularios
+24: 
+25: ### 📦 Gestión de Pedidos Avanzada
+26: - ✅ **Estados Granulares**: Visualización detallada (Cocinando, Empacando, En camino, etc.)
+27: - ✅ **Actualización Manual**: Botón de refresco para estados sin depender de WebSockets
+28: - ✅ **Confirmación Persistente**: Botón de "Confirmar Recepción" inteligente que persiste tras recargas
+29: - ✅ **WebSockets**: Notificaciones en tiempo real para cambios de estado
 
 ### 🏗️ Arquitectura
 
