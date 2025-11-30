@@ -35,6 +35,56 @@ const ProfilePage = () => {
     const [orders, setOrders] = useState<OrderSummary[]>([]);
     const [isLoadingOrders, setIsLoadingOrders] = useState(true);
 
+    // Función para cargar pedidos (extraída de useEffect para poder reutilizarla)
+    const fetchOrders = async () => {
+        setIsLoadingOrders(true);
+        try {
+            // Importar dinámicamente para evitar ciclos si fuera necesario
+            const { listUserOrders, getOrderByIdDetailed } = await import('../services/orderService');
+            const userOrders = await listUserOrders();
+
+            // Mapear Order[] a OrderSummary[] (parciales)
+            const summaries: OrderSummary[] = userOrders.map(o => ({
+                pedido_id: o.id,
+                local_id: o.storeId || '', // Nota: esto vendrá vacío si solo tenemos IDs desde el endpoint
+                fecha: o.createdAt,
+                total: o.total,
+                // Mapeo inicial basado en el status del objeto Order
+                estado: o.status === 'pending' ? 'procesando' :
+                    o.status === 'preparing' ? 'cocinando' :
+                        o.status === 'delivering' ? 'enviando' :
+                            o.status === 'delivered' ? 'recibido' :
+                                o.status === 'cancelled' ? 'cancelado' : 'procesando'
+            }));
+
+            setOrders(summaries);
+
+            // Obtener detalles por cada pedido usando su propio local_id
+            const withDetails = await Promise.all(summaries.map(async (s) => {
+                try {
+                    if (!s.local_id) return s;
+
+                    const detalle = await getOrderByIdDetailed(s.local_id, s.pedido_id);
+                    return {
+                        ...s,
+                        local_id: detalle?.local_id || s.local_id,
+                        total: detalle?.costo ?? s.total,
+                        // Mantener el estado del backend si está disponible
+                        estado: detalle?.estado || s.estado
+                    } as OrderSummary;
+                } catch (e) {
+                    return s;
+                }
+            }));
+
+            setOrders(withDetails);
+        } catch (error) {
+            console.error('Error cargando pedidos:', error);
+        } finally {
+            setIsLoadingOrders(false);
+        }
+    };
+
     // Cargar datos del usuario al montar
     useEffect(() => {
         if (!isAuthenticated || !user) {
@@ -49,35 +99,6 @@ const ProfilePage = () => {
             fecha_vencimiento: user.informacion_bancaria?.fecha_vencimiento || '',
             direccion_delivery: user.informacion_bancaria?.direccion_delivery || ''
         });
-
-        // Cargar historial de pedidos
-        const fetchOrders = async () => {
-            setIsLoadingOrders(true);
-            try {
-                // Importar dinámicamente para evitar ciclos si fuera necesario
-                const { listUserOrders } = await import('../services/orderService');
-                const userOrders = await listUserOrders();
-
-                // Mapear Order[] a OrderSummary[]
-                const summaries: OrderSummary[] = userOrders.map(o => ({
-                    pedido_id: o.id,
-                    local_id: o.storeId, // Nota: esto vendrá vacío si solo tenemos IDs
-                    fecha: o.createdAt,
-                    total: o.total,
-                    estado: o.status === 'pending' ? 'procesando' :
-                        o.status === 'preparing' ? 'cocinando' :
-                            o.status === 'delivering' ? 'enviando' :
-                                o.status === 'delivered' ? 'recibido' :
-                                    o.status === 'cancelled' ? 'cancelado' : 'procesando'
-                }));
-
-                setOrders(summaries);
-            } catch (error) {
-                console.error('Error cargando pedidos:', error);
-            } finally {
-                setIsLoadingOrders(false);
-            }
-        };
 
         fetchOrders();
     }, [user, isAuthenticated, navigate]);
@@ -408,7 +429,29 @@ const ProfilePage = () => {
 
                 {/* Historial de Pedidos */}
                 <section className="mt-8 border-t border-gray-100 pt-6">
-                    <h2 className="mb-4 text-lg font-semibold text-dark-text">Historial de Pedidos</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-dark-text">Historial de Pedidos</h2>
+                        <button
+                            onClick={fetchOrders}
+                            disabled={isLoadingOrders}
+                            className="flex items-center gap-2 text-sm font-medium text-secondary hover:text-secondary/80 disabled:opacity-50"
+                        >
+                            <svg
+                                className={`h-4 w-4 ${isLoadingOrders ? 'animate-spin' : ''}`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                />
+                            </svg>
+                            Actualizar
+                        </button>
+                    </div>
 
                     {isLoadingOrders ? (
                         <div className="flex items-center justify-center py-12">
@@ -436,17 +479,26 @@ const ProfilePage = () => {
                     ) : (
                         <div className="space-y-4">
                             {orders.map((order) => {
-                                // Mapear estados del backend a configuración de UI
+                                // Mostrar estados granulares
                                 const getStatusConfig = (estado: string) => {
-                                    const configs: Record<string, { bg: string; text: string; label: string; icon: string }> = {
-                                        'procesando': { bg: 'bg-yellow-50', text: 'text-yellow-700', label: 'Procesando', icon: '🕐' },
-                                        'cocinando': { bg: 'bg-purple-50', text: 'text-purple-700', label: 'Cocinando', icon: '👨‍🍳' },
-                                        'empacando': { bg: 'bg-indigo-50', text: 'text-indigo-700', label: 'Empacando', icon: '📦' },
-                                        'enviando': { bg: 'bg-teal-50', text: 'text-teal-700', label: 'En camino', icon: '🚚' },
-                                        'recibido': { bg: 'bg-green-50', text: 'text-green-700', label: 'Entregado', icon: '✅' },
-                                        'cancelado': { bg: 'bg-red-50', text: 'text-red-700', label: 'Cancelado', icon: '❌' }
-                                    };
-                                    return configs[estado] || configs['procesando'];
+                                    const normalized = estado.toLowerCase();
+                                    if (normalized === 'recibido' || normalized === 'entregado' || normalized === 'delivered') {
+                                        return { bg: 'bg-green-50', text: 'text-green-700', label: 'Entregado', icon: '✅' };
+                                    }
+                                    if (normalized === 'enviando' || normalized === 'delivering') {
+                                        return { bg: 'bg-blue-50', text: 'text-blue-700', label: 'En camino', icon: '🛵' };
+                                    }
+                                    if (normalized === 'cocinando' || normalized === 'preparing') {
+                                        return { bg: 'bg-orange-50', text: 'text-orange-700', label: 'Cocinando', icon: '👨‍🍳' };
+                                    }
+                                    if (normalized === 'empacando') {
+                                        return { bg: 'bg-purple-50', text: 'text-purple-700', label: 'Empacando', icon: '🥡' };
+                                    }
+                                    if (normalized === 'cancelado' || normalized === 'cancelled') {
+                                        return { bg: 'bg-red-50', text: 'text-red-700', label: 'Cancelado', icon: '❌' };
+                                    }
+                                    // Default: Procesando / Pending
+                                    return { bg: 'bg-yellow-50', text: 'text-yellow-700', label: 'Procesando', icon: '🕐' };
                                 };
 
                                 const statusConfig = getStatusConfig(order.estado);
@@ -462,10 +514,12 @@ const ProfilePage = () => {
                                     <div
                                         key={order.pedido_id}
                                         onClick={() => {
-                                            // Usar el local seleccionado actual o uno por defecto si no hay
-                                            // El usuario garantizó que el local estaría seleccionado
-                                            const targetLocalId = selectedStore?.id || '4ed35112-f906-453f-a22a-d9055ee86ba3';
-                                            navigate(`/orders/${targetLocalId}/${order.pedido_id}`);
+                                            // Usar el local_id del pedido
+                                            if (order.local_id) {
+                                                navigate(`/orders/${order.local_id}/${order.pedido_id}`);
+                                            } else {
+                                                console.error('No local_id for order:', order);
+                                            }
                                         }}
                                         className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:shadow-md hover:border-secondary/30"
                                     >

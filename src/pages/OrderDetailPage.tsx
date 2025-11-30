@@ -43,7 +43,11 @@ const OrderDetailPage = () => {
 
     // Manejar notificaciones del WebSocket
     const handleWebSocketMessage = useCallback((notification: WebSocketNotification) => {
-        console.log('Nueva notificación:', notification);
+        console.log('--- Notificación WebSocket Recibida ---');
+        console.log('Tipo:', notification.tipo);
+        console.log('Datos:', notification.datos);
+        console.log('Timestamp:', notification.timestamp);
+        console.log('------------------------------------');
 
         // Agregar notificación al historial
         setNotifications(prev => [notification, ...prev]);
@@ -142,7 +146,15 @@ const OrderDetailPage = () => {
 
     // Confirmar recepción del pedido
     const handleConfirmDelivery = async () => {
-        if (!pedidoId || !user?.correo) return;
+        console.log('Intentando confirmar entrega. Valores actuales:');
+        console.log('pedidoId:', pedidoId);
+        console.log('localId:', localId);
+        console.log('user.correo:', user?.correo);
+
+        if (!pedidoId || !user?.correo || !localId) {
+            console.error('Faltan datos para confirmar el pedido.');
+            return;
+        }
 
         setIsConfirming(true);
             try {

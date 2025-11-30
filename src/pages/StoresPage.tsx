@@ -1,26 +1,54 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../contexts/StoreContext';
+import { useCart } from '../contexts/CartContext';
 import { getDeliveryOptions, getStoreStats } from '../services/storeService';
+import StoreChangeModal from '../components/common/StoreChangeModal';
 import type { Store, DeliveryOption } from '../types';
 
 const ITEMS_PER_PAGE = 6;
 
 const StoresPage = () => {
-  const { stores, loading, selectStore } = useStore();
+  const { stores, loading, selectStore, selectedStore } = useStore();
+  const { cart } = useCart();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [selectedDeliveryType, setSelectedDeliveryType] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [storeRatings, setStoreRatings] = useState<Record<string, { rating: number; reviews: number }>>({}); // Estado para calificaciones y conteo de reseñas
+  const [storeRatings, setStoreRatings] = useState<Record<string, { rating: number; reviews: number }>>({});
+  const [showChangeModal, setShowChangeModal] = useState(false);
+  const [storeToChangeTo, setStoreToChangeTo] = useState<string | null>(null); // Estado para calificaciones y conteo de reseñas
   const deliveryOptions = getDeliveryOptions();
 
-  
+
 
   const handleSelectStore = async (storeId: string) => {
-    await selectStore(storeId);
-    navigate('/menu');
+    // Si el carrito tiene items y estamos cambiando de local, mostrar modal de confirmación
+    if (cart.items.length > 0 && selectedStore?.id !== storeId) {
+      setStoreToChangeTo(storeId);
+      setShowChangeModal(true);
+    } else {
+      // Si el carrito está vacío o es el mismo local, cambiar directamente
+      await selectStore(storeId);
+      navigate('/menu');
+    }
   };
+
+  const handleConfirmChange = async () => {
+    if (storeToChangeTo) {
+      await selectStore(storeToChangeTo);
+      setShowChangeModal(false);
+      setStoreToChangeTo(null);
+      navigate('/menu');
+    }
+  };
+
+  const handleCancelChange = () => {
+    setShowChangeModal(false);
+    setStoreToChangeTo(null);
+  };
+
+  const newStore = storeToChangeTo ? stores.find(s => s.id === storeToChangeTo) : null;
 
   const filteredStores = useMemo(() => {
     let filtered = stores;
@@ -430,6 +458,16 @@ const StoresPage = () => {
           </>
         )}
       </section>
+
+      {/* Modal de confirmación de cambio de local */}
+      <StoreChangeModal
+        isOpen={showChangeModal}
+        currentStoreName={selectedStore?.address || 'Local actual'}
+        newStoreName={newStore?.address || 'Nuevo local'}
+        cartItemCount={cart.items.length}
+        onConfirm={handleConfirmChange}
+        onCancel={handleCancelChange}
+      />
     </div>
   );
 };

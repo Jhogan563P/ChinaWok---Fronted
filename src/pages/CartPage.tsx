@@ -1,8 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useEffect, useState } from 'react'; // Añadir useEffect y useState
-import { getCurrentUser } from '../services/userService'; // Añadir getCurrentUser
+import { useEffect, useState } from 'react';
+import { getCurrentUser } from '../services/userService';
+import ProductEmoji from '../components/common/ProductEmoji';
 
 const CartPage = () => {
   const { cart, removeItem, updateItemQuantity, clearCart, itemCount } = useCart();
@@ -183,7 +184,11 @@ const CartPage = () => {
                 key={item.id}
                 className="flex items-center gap-4 rounded-2xl border border-gray-100 p-4"
               >
-                <img src={item.image} alt={item.name} className="h-20 w-20 rounded-2xl object-cover" />
+                {item.image ? (
+                  <img src={item.image} alt={item.name} className="h-20 w-20 rounded-2xl object-cover" />
+                ) : (
+                  <ProductEmoji type={item.type} category={item.category} />
+                )}
                 <div className="flex-1">
                   <h2 className="text-lg font-semibold text-dark-text">{item.name}</h2>
                   <p className="text-sm text-gray-500">

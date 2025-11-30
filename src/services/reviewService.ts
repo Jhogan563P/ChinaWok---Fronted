@@ -90,7 +90,7 @@ export const updateReview = async (
     try {
         console.log('reviewService: Actualizando reseña:', { localId, resenaId, calificacion, resena });
 
-        const response = await employeesClient.put<any>(`/resenas/${resenaId}`, {
+        const response = await employeesClient.put<any>(`/resenas/${localId}/${resenaId}`, {
             calificacion,
             resena
         });
@@ -136,7 +136,7 @@ export const deleteReview = async (
     try {
         console.log('reviewService: Eliminando reseña:', { localId, resenaId });
 
-        await employeesClient.delete(`/resenas/${resenaId}`);
+        await employeesClient.delete(`/resenas/${localId}/${resenaId}`);
 
         console.log('reviewService: Reseña eliminada exitosamente');
     } catch (error: any) {
@@ -198,11 +198,34 @@ export const getReviewByOrder = async (
     pedidoId: string
 ): Promise<Review | null> => {
     try {
-        const reviews = await getReviewsByLocal(localId);
-        const orderReview = reviews.find(review => review.pedido_id === pedidoId);
-        return orderReview || null;
+        // Preferir el endpoint específico por pedido si está disponible en el backend
+        const response = await employeesClient.get<any>(`/resenas/pedido/${pedidoId}`);
+        const reviews = response.data.resenas || response.data.data || response.data || [];
+
+        if (!Array.isArray(reviews)) return null;
+
+        const mapped = reviews.map((review: any) => ({
+            resena_id: review.resena_id,
+            local_id: review.local_id,
+            pedido_id: review.pedido_id,
+            cocinero_dni: review.cocinero_dni,
+            despachador_dni: review.despachador_dni,
+            repartidor_dni: review.repartidor_dni,
+            resena: review.resena,
+            calificacion: Number(review.calificacion)
+        }));
+
+        // Devolver la primer reseña relacionada con el pedido (normalmente solo hay una del cliente)
+        return mapped[0] || null;
     } catch (error) {
         console.error('reviewService: Error al obtener reseña del pedido:', error);
-        return null;
+        // Fallback: intentar obtener por local (método anterior)
+        try {
+            const reviews = await getReviewsByLocal(localId);
+            const orderReview = reviews.find(review => review.pedido_id === pedidoId);
+            return orderReview || null;
+        } catch (e) {
+            return null;
+        }
     }
 };

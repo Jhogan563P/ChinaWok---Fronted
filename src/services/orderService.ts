@@ -151,15 +151,15 @@ export const listUserOrders = async (): Promise<Order[]> => {
     // Solo obtenemos los IDs y el frontend usará el local seleccionado para ver detalles.
     const response = await usersClient.get<any>('/usuario/me/historial-pedidos');
 
-    // El backend devuelve { message, correo, total_pedidos, pedidos_ids: [] }
-    const pedidosIds = response.data.pedidos_ids || [];
-    console.log(`orderService: ${pedidosIds.length} IDs de pedidos encontrados`);
+    // El backend devuelve { message, correo, total_pedidos, pedidos: [{pedido_id, local_id}, ...] }
+    const pedidos = response.data.pedidos || [];
+    console.log(`orderService: ${pedidos.length} pedidos encontrados`);
 
-    if (pedidosIds.length === 0) return [];
+    if (pedidos.length === 0) return [];
 
-    // Mapeamos los IDs a objetos parciales de Order
+    // Mapeamos los objetos simplificados a objetos parciales de Order
     // La información detallada se obtendrá en la página de detalles
-    const orders = pedidosIds.map((id: any) => mapBackendOrderToFrontend(id));
+    const orders = pedidos.map((p: any) => mapBackendOrderToFrontend(p));
 
     return orders;
   } catch (error: any) {
@@ -184,6 +184,23 @@ const mapBackendOrderToFrontend = (backendOrder: any): Order => {
       id: backendOrder,
       userId: '', // No disponible
       storeId: '', // No disponible
+      items: [],
+      subtotal: 0,
+      deliveryFee: 0,
+      total: 0,
+      status: 'pending',
+      deliveryType: 'delivery',
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  // Si es el objeto simplificado del historial { pedido_id, local_id }
+  // y no tiene 'estado' (que indicaría objeto completo)
+  if (backendOrder.pedido_id && backendOrder.local_id && !backendOrder.estado) {
+    return {
+      id: backendOrder.pedido_id,
+      userId: '',
+      storeId: backendOrder.local_id, // Capturamos el local_id
       items: [],
       subtotal: 0,
       deliveryFee: 0,
@@ -338,8 +355,8 @@ export const confirmOrderDelivery = async (
     };
 
     if (localId) payload.local_id = localId;
-    if (usuarioCorreo) payload.usuario_correo = usuarioCorreo;
 
+    console.log('Enviando payload a /workflow/confirmar:', payload);
     const response = await ordersClient.post<any>('/workflow/confirmar', payload);
 
     console.log('orderService: Recepción confirmada exitosamente');

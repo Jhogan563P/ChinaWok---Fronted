@@ -1,7 +1,7 @@
 import PromoCarousel from '../components/common/PromoCarousel';
 import ProductFilters from '../components/products/ProductFilters';
 import ProductCard from '../components/products/ProductCard';
-import ComboCard from '../components/products/ComboCard';
+import ComboCarousel from '../components/products/ComboCarousel';
 import SkeletonGrid from '../components/shared/SkeletonGrid';
 import { useProducts } from '../hooks/useProducts';
 import { useCombos } from '../hooks/useCombos';
@@ -91,6 +91,7 @@ const HomePage = () => {
               setActiveCategory(categoria);
               setShowAll(false);
             }}
+            onViewAll={handleViewAll}
           />
         </div>
 
@@ -101,12 +102,6 @@ const HomePage = () => {
       <section id="products-section" className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-dark-text">{sectionTitle}</h2>
-          <button
-            onClick={handleViewAll}
-            className="text-sm font-semibold text-secondary hover:text-primary transition"
-          >
-            Ver todos
-          </button>
         </div>
 
         {loadingProducts ? (
@@ -177,11 +172,7 @@ const HomePage = () => {
             </p>
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {combos.map((combo) => (
-              <ComboCard key={combo.combo_id} combo={combo} />
-            ))}
-          </div>
+          <ComboCarousel combos={combos} />
         )}
       </section>
     </div>

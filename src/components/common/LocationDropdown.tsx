@@ -1,10 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../../contexts/StoreContext';
+import { useCart } from '../../contexts/CartContext';
+import StoreChangeModal from './StoreChangeModal';
 
 const LocationDropdown = () => {
   const { stores, selectedStore, selectStore } = useStore();
+  const { cart } = useCart();
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [showChangeModal, setShowChangeModal] = useState(false);
+  const [storeToChangeTo, setStoreToChangeTo] = useState<string | null>(null);
 
   const filteredStores = useMemo(() => {
     return stores.filter((store) =>
@@ -13,9 +18,35 @@ const LocationDropdown = () => {
   }, [stores, search]);
 
   const handleSelect = async (storeId: string) => {
-    await selectStore(storeId);
-    setIsOpen(false);
+    // Si el carrito tiene items y estamos cambiando de local, mostrar modal de confirmación
+    if (cart.items.length > 0 && selectedStore?.id !== storeId) {
+      const newStore = stores.find(s => s.id === storeId);
+      if (newStore) {
+        setStoreToChangeTo(storeId);
+        setShowChangeModal(true);
+        setIsOpen(false); // Cerrar el dropdown
+      }
+    } else {
+      // Si el carrito está vacío o es el mismo local, cambiar directamente
+      await selectStore(storeId);
+      setIsOpen(false);
+    }
   };
+
+  const handleConfirmChange = async () => {
+    if (storeToChangeTo) {
+      await selectStore(storeToChangeTo);
+      setShowChangeModal(false);
+      setStoreToChangeTo(null);
+    }
+  };
+
+  const handleCancelChange = () => {
+    setShowChangeModal(false);
+    setStoreToChangeTo(null);
+  };
+
+  const newStore = storeToChangeTo ? stores.find(s => s.id === storeToChangeTo) : null;
 
   return (
     <div className="relative hidden min-w-[240px] lg:block">
@@ -82,6 +113,16 @@ const LocationDropdown = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de confirmación de cambio de local */}
+      <StoreChangeModal
+        isOpen={showChangeModal}
+        currentStoreName={selectedStore?.address || 'Local actual'}
+        newStoreName={newStore?.address || 'Nuevo local'}
+        cartItemCount={cart.items.length}
+        onConfirm={handleConfirmChange}
+        onCancel={handleCancelChange}
+      />
     </div>
   );
 };

@@ -134,16 +134,30 @@ export const useWebSocket = ({
         }, 100);
     }, [connect, disconnect]);
 
-    // Conectar al montar
+    // Conectar al montar y gestionar el ciclo de vida de la conexión
     useEffect(() => {
-        shouldReconnectRef.current = true;
+        shouldReconnectRef.current = autoReconnect;
+        
+        // Iniciar conexión
         connect();
 
-        // Cleanup al desmontar
+        // Función de limpieza para desmontar el componente
         return () => {
-            disconnect();
+            console.log('WebSocket: Limpiando efecto y desconectando...');
+            shouldReconnectRef.current = false;
+
+            // Limpiar timeout de reconexión
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
+
+            // Cerrar conexión WebSocket
+            if (wsRef.current) {
+                wsRef.current.onclose = null; // Evitar reconexión al desmontar
+                wsRef.current.close();
+            }
         };
-    }, [connect, disconnect, usuarioCorreo, pedidoId, onMessage, autoReconnect, reconnectInterval]); // Añadir todas las dependencias de `connect`
+    }, [autoReconnect, connect]); // Ejecutar solo si autoReconnect cambia
 
     return {
         isConnected,

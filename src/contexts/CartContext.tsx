@@ -27,6 +27,10 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     return savedCart ? JSON.parse(savedCart) : [];
   });
 
+  const [currentStoreId, setCurrentStoreId] = useState<string | null>(() => {
+    return localStorage.getItem('selectedStoreId');
+  });
+
   // Calcular totales
   const calculateTotals = (items: CartItem[]): Cart => {
     const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -122,6 +126,29 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     setCartItems([]);
     localStorage.removeItem(CART_STORAGE_KEY);
   };
+
+  // Escuchar cambios de local para limpiar el carrito
+  useEffect(() => {
+    const handleStoreChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ newStoreId: string; oldStoreId: string }>;
+      const { newStoreId, oldStoreId } = customEvent.detail;
+
+      // Si había items en el carrito y cambió el local, limpiar
+      if (cartItems.length > 0 && oldStoreId !== newStoreId) {
+        console.log(`Store changed from ${oldStoreId} to ${newStoreId}, clearing cart`);
+        clearCart();
+      }
+
+      // Actualizar el ID del local actual
+      setCurrentStoreId(newStoreId);
+    };
+
+    window.addEventListener('storeChanged', handleStoreChange);
+
+    return () => {
+      window.removeEventListener('storeChanged', handleStoreChange);
+    };
+  }, [cartItems.length]); // Dependencia de la longitud para evitar recrear el listener constantemente
 
   /**
    * Obtiene la cantidad de un item específico en el carrito
