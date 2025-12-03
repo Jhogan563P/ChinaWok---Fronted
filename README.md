@@ -2,7 +2,7 @@
 
 Aplicación web moderna de e-commerce para delivery de comida, replicando la experiencia de China Wok Perú. Construida con **Vite + React + TypeScript** y preparada para integrarse con microservicios desplegados en **AWS Lambda + API Gateway**.
 
-## ✨ Características Implementadas
+## Características Implementadas
 
 ### 🎨 Frontend
 - **React 18** con TypeScript para desarrollo type-safe
